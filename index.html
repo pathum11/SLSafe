@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SL Smart Search - Pro</title>
+    <title>SL Smart Search - Sorted by Distance</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #d32f2f; --blue: #1976d2; --bg: #f0f2f5; --success: #2e7d32; }
@@ -16,7 +16,9 @@
         .grid-item { background: white; border: 1px solid #eee; padding: 15px 5px; border-radius: 12px; text-align: center; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.2s; }
         .grid-item:active { background: #fff5f5; transform: scale(0.95); }
 
-        .result-card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 15px; border-left: 6px solid var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.06); }
+        .result-card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 15px; border-left: 6px solid var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.06); animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
         .result-card h4 { margin: 0 0 10px 0; font-size: 16px; color: #1a1a1a; }
         
         .badge-row { display: flex; gap: 5px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -66,7 +68,7 @@
                     document.getElementById('locDisplay').innerText = "📍 වත්මන් ස්ථානය: " + (d.address.city || d.address.town || d.address.village || "හඳුනාගත්තා");
                 });
             }, () => {
-                document.getElementById('locDisplay').innerText = "❌ කරුණාකර Location Permission ලබා දෙන්න.";
+                document.getElementById('locDisplay').innerText = "❌ Location Permission ලබා දෙන්න.";
             });
         }
     }
@@ -74,59 +76,66 @@
     async function findPro(type, siName) {
         if (!lat) return alert("ස්ථානය ලබාගන්නා තෙක් රැඳී සිටින්න.");
         const resDiv = document.getElementById('results');
-        resDiv.innerHTML = `<div class="loading">ළඟම ඇති ${siName} වලට සැබෑ මාර්ගගත දුර සහ කාලය ගණනය කරමින්...</div>`;
+        resDiv.innerHTML = `<div class="loading">ළඟම ඇති ${siName} සොයා මාර්ගගත දුර අනුව පෙළගස්වමින්...</div>`;
 
-        // 1. Overpass API හරහා ළඟම ස්ථාන 5ක් ලබාගැනීම
-        const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=${type}](around:10000,${lat},${lon});out 5;`;
+        // 1. Overpass API හරහා ළඟම ස්ථාන 8ක් ලබාගැනීම
+        const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=${type}](around:10000,${lat},${lon});out 8;`;
         
         try {
             const response = await fetch(overpassUrl);
             const data = await response.json();
             if (data.elements.length === 0) { resDiv.innerHTML = "කණගාටුයි, කිසිවක් හමු නොවීය."; return; }
 
-            resDiv.innerHTML = "";
+            let processedResults = [];
 
+            // 2. එක් එක් ස්ථානය සඳහා සැබෑ දුර ලබාගැනීම
             for (let item of data.elements) {
-                // 2. OSRM API හරහා දුර සහ කාලය ගණනය කිරීම
                 const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${lon},${lat};${item.lon},${item.lat}?overview=false`;
-                const osrmRes = await fetch(osrmUrl);
-                const osrmData = await osrmRes.json();
+                try {
+                    const osrmRes = await fetch(osrmUrl);
+                    const osrmData = await osrmRes.json();
 
-                let roadDist = "0.00 KM";
-                let travelTime = "0 min";
-                
-                if (osrmData.routes && osrmData.routes[0]) {
-                    roadDist = (osrmData.routes[0].distance / 1000).toFixed(2) + " KM";
-                    // තත්පර මිනිත්තු වලට හැරවීම (සම්පූර්ණ අංකයක් ලෙස)
-                    travelTime = Math.round(osrmData.routes[0].duration / 60) + " min පමණ";
-                }
+                    if (osrmData.routes && osrmData.routes[0]) {
+                        const route = osrmData.routes[0];
+                        processedResults.push({
+                            name: item.tags.name || siName + " මධ්‍යස්ථානය",
+                            phone: item.tags.phone || item.tags["contact:phone"] || "ලබාගත නොහැක",
+                            address: (item.tags["addr:street"] ? item.tags["addr:street"] + ", " : "") + (item.tags["addr:suburb"] || item.tags["addr:city"] || "ප්‍රදේශය අසල"),
+                            distanceValue: route.distance / 1000, // KM වලින් (සංඛ්‍යාත්මක අගය)
+                            distanceTxt: (route.distance / 1000).toFixed(2) + " KM",
+                            timeTxt: Math.round(route.duration / 60) + " min පමණ",
+                            lat: item.lat,
+                            lon: item.lon
+                        });
+                    }
+                } catch (err) { console.error("OSRM Error", err); }
+            }
 
-                const name = item.tags.name || siName + " මධ්‍යස්ථානය";
-                const phone = item.tags.phone || item.tags["contact:phone"] || "ලබාගත නොහැක";
-                
-                // ලිපිනය සැකසීම (Street + City)
-                const street = item.tags["addr:street"] || "";
-                const suburb = item.tags["addr:suburb"] || item.tags["addr:city"] || "ප්‍රදේශය අසල";
-                const fullAddress = street ? `${street}, ${suburb}` : suburb;
+            // 3. දුර අනුව පෙළගැස්වීම (Sorting)
+            processedResults.sort((a, b) => a.distanceValue - b.distanceValue);
 
+            // 4. HTML එකට ඇතුළත් කිරීම
+            resDiv.innerHTML = `<h4>ප්‍රතිඵල (${processedResults.length}) - ළඟම ස්ථානයේ සිට:</h4>`;
+            processedResults.forEach(res => {
                 resDiv.innerHTML += `
                     <div class="result-card">
-                        <h4>${name}</h4>
+                        <h4>${res.name}</h4>
                         <div class="badge-row">
-                            <span class="badge dist-badge">🛣️ දුර: ${roadDist}</span>
-                            <span class="badge time-badge">⏱️ ගතවන කාලය: ${travelTime}</span>
+                            <span class="badge dist-badge">🛣️ දුර: ${res.distanceTxt}</span>
+                            <span class="badge time-badge">⏱️ ගතවන කාලය: ${res.timeTxt}</span>
                         </div>
                         <div class="details">
-                            <b>📍 ලිපිනය:</b> ${fullAddress}<br>
-                            <b>📞 දුරකථන:</b> ${phone}
+                            <b>📍 ලිපිනය:</b> ${res.address}<br>
+                            <b>📞 දුරකථන:</b> ${res.phone}
                         </div>
                         <div class="action-btns">
-                            <a href="tel:${phone}" class="btn call-btn" ${phone == 'ලබාගත නොහැක' ? 'style="opacity:0.4;pointer-events:none;"' : ''}>අමතන්න</a>
-                            <a href="https://www.google.com/maps/dir/${lat},${lon}/${item.lat},${item.lon}" target="_blank" class="btn dir-btn">🧭 මාර්ගය (Directions)</a>
+                            <a href="tel:${res.phone}" class="btn call-btn" ${res.phone == 'ලබාගත නොහැක' ? 'style="opacity:0.4;pointer-events:none;"' : ''}>අමතන්න</a>
+                            <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}/${res.lat},${res.lon}" target="_blank" class="btn dir-btn">🧭 මාර්ගය</a>
                         </div>
                     </div>
                 `;
-            }
+            });
+
         } catch (e) {
             resDiv.innerHTML = "දත්ත ලබාගැනීමේ දෝෂයක් සිදු විය.";
         }
