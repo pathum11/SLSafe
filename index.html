@@ -6,37 +6,36 @@
     <title>SL Emergency & Smart Search</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #d32f2f; --blue: #1976d2; --bg: #f8f9fa; }
+        :root { --primary: #d32f2f; --blue: #1976d2; --bg: #f8f9fa; --success: #2e7d32; }
         body { font-family: 'Noto Sans Sinhala', sans-serif; background: var(--bg); margin: 0; padding-bottom: 50px; }
         
-        header { background: white; padding: 15px; text-align: center; border-bottom: 3px solid var(--primary); sticky: top; }
-        .emergency-nav-btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; width: 90%; font-weight: bold; cursor: pointer; }
+        header { background: white; padding: 15px; text-align: center; border-bottom: 3px solid var(--primary); position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .emergency-nav-btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; width: 90%; font-weight: bold; cursor: default; }
 
         .container { max-width: 500px; margin: auto; padding: 15px; }
         .card { background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         
-        /* 01 & 02. Location Section */
-        .manual-input-group { display: flex; gap: 5px; margin-bottom: 10px; }
-        .manual-input { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 8px; }
-        .search-btn { background: var(--blue); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        
-        .location-display { background: #e3f2fd; padding: 10px; border-radius: 8px; font-size: 13px; color: #1565c0; margin-bottom: 15px; font-weight: bold; text-align: center; border: 1px dashed #1976d2; }
+        .location-display { background: #e3f2fd; padding: 12px; border-radius: 8px; font-size: 14px; color: #1565c0; margin: 15px 0; font-weight: bold; text-align: center; border: 1px dashed #1976d2; }
 
-        /* 03. Grid & List Section */
-        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; }
-        .grid-item { background: #fff; border: 1px solid #eee; padding: 10px 5px; border-radius: 10px; text-align: center; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.2s; }
-        .grid-item:active { transform: scale(0.95); background: #fff5f5; }
-        .icon { font-size: 20px; display: block; margin-bottom: 5px; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .grid-item { background: #fff; border: 1px solid #eee; padding: 15px 5px; border-radius: 12px; text-align: center; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .grid-item:hover { background: #fff5f5; border-color: var(--primary); }
+        .grid-item:active { transform: scale(0.95); }
+        .icon { font-size: 24px; display: block; margin-bottom: 5px; }
 
-        /* Result List Area */
+        /* Result Cards */
         .result-list { margin-top: 10px; }
-        .result-card { background: white; border-left: 5px solid var(--primary); padding: 15px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .result-card h4 { margin: 0 0 5px 0; color: #333; font-size: 15px; }
-        .result-info { font-size: 12px; color: #666; line-height: 1.6; }
-        .action-btns { display: flex; gap: 10px; margin-top: 10px; }
-        .action-btns a { flex: 1; text-align: center; padding: 8px; border-radius: 5px; text-decoration: none; font-size: 12px; font-weight: bold; }
-        .call-btn { background: #4caf50; color: white; }
-        .dir-btn { background: #f44336; color: white; }
+        .result-card { background: white; border-left: 5px solid var(--primary); padding: 15px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.08); animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .result-card h4 { margin: 0 0 8px 0; color: #333; font-size: 16px; }
+        .result-info { font-size: 13px; color: #666; line-height: 1.5; margin-bottom: 10px; }
+        
+        .action-btns { display: flex; gap: 10px; }
+        .dir-btn { flex: 1; background: var(--success); color: white; text-align: center; padding: 10px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold; transition: 0.2s; }
+        .dir-btn:hover { background: #1b5e20; }
+
+        .loading-text { text-align: center; color: #666; font-style: italic; padding: 20px; }
     </style>
 </head>
 <body>
@@ -46,19 +45,12 @@
 </header>
 
 <div class="container">
-    
     <div class="card">
-        <h3>📍 ස්ථානය තෝරන්න</h3>
-        <button onclick="getAutoLocation()" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd; cursor:pointer;">Auto Location ලබාගන්න</button>
+        <h3>📍 ඔබේ ස්ථානය ලබාගන්න</h3>
+        <button onclick="getAutoLocation()" style="width:100%; padding:12px; background: var(--blue); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">Auto Location ලබාගන්න</button>
         
-        <div class="manual-input-group">
-            <input type="text" id="manualLoc" class="manual-input" placeholder="නගරය ඇතුළත් කරන්න...">
-            <button class="search-btn" onclick="setManualLocation()">Search</button>
-        </div>
-
         <div id="locationNameDisplay" class="location-display">තවමත් ස්ථානයක් තෝරා නැත</div>
 
         <div class="grid">
-            <div class="grid-item" onclick="findNearby('Police')"><span class="icon">🚨</span>පොලිසිය</div>
-            <div class="grid-item" onclick="findNearby('Hospital')"><span class="icon">🏥</span>රෝහල්</div>
-            <div class="grid-item" onclick="findNearby
+            <div class="grid-item" onclick="findNearby('Police', 'පොලිසිය')"><span class="icon">🚨</span>පොලිසිය</div>
+            <div class="grid-item" onclick="findNearby('Hospital', 'ර
