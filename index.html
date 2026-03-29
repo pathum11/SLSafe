@@ -3,129 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SL Smart Search - Fix Directions</title>
+    <title>SL Smart Search AI</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #d32f2f; --blue: #1976d2; --bg: #f0f2f5; --success: #2e7d32; }
         body { font-family: 'Noto Sans Sinhala', sans-serif; background: var(--bg); margin: 0; padding-bottom: 50px; }
         header { background: white; padding: 15px; text-align: center; border-bottom: 4px solid var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
-        .container { max-width: 500px; margin: auto; padding: 15px; }
-        .location-box { background: #e3f2fd; padding: 12px; border-radius: 10px; font-size: 14px; color: #1565c0; margin-bottom: 20px; text-align: center; border: 1px solid #bbdefb; font-weight: bold; }
-        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-        .grid-item { background: white; border: 1px solid #eee; padding: 15px 5px; border-radius: 12px; text-align: center; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.2s; }
+        .container { max-width: 500px; margin: auto; padding: 10px; }
+        .location-box { background: #e3f2fd; padding: 10px; border-radius: 10px; font-size: 13px; color: #1565c0; margin-bottom: 15px; text-align: center; border: 1px solid #bbdefb; font-weight: bold; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px; }
+        .grid-item { background: white; border: 1px solid #eee; padding: 12px 5px; border-radius: 12px; text-align: center; cursor: pointer; font-size: 11px; font-weight: bold; }
         .grid-item:active { background: #fff5f5; transform: scale(0.95); }
-        .result-card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 15px; border-left: 6px solid var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.06); }
-        .result-card h4 { margin: 0 0 10px 0; font-size: 16px; color: #1a1a1a; }
-        .badge-row { display: flex; gap: 5px; margin-bottom: 12px; flex-wrap: wrap; }
-        .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; }
-        .dist-badge { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
-        .time-badge { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; }
-        .details { font-size: 13px; color: #555; line-height: 1.6; margin-bottom: 15px; }
+        .result-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 12px; border-left: 6px solid var(--primary); box-shadow: 0 3px 8px rgba(0,0,0,0.05); }
+        .result-card h4 { margin: 0 0 8px 0; font-size: 15px; color: #1a1a1a; }
+        .ai-badge { background: #f3e5f5; color: #7b1fa2; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 5px; vertical-align: middle; border: 1px solid #e1bee7; }
+        .badge-row { display: flex; gap: 5px; margin-bottom: 10px; }
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; color: white; }
+        .dist-badge { background: #2e7d32; }
+        .time-badge { background: #e65100; }
+        .details { font-size: 13px; color: #555; line-height: 1.5; margin-bottom: 12px; }
         .action-btns { display: flex; gap: 8px; }
-        .btn { flex: 1; text-align: center; padding: 10px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: bold; color: white; border: none; }
+        .btn { flex: 1; text-align: center; padding: 10px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: bold; color: white; }
         .call-btn { background: var(--blue); }
         .dir-btn { background: var(--success); }
-        .loading { text-align: center; padding: 30px; color: #666; font-style: italic; }
+        .loading { text-align: center; padding: 20px; color: #666; font-style: italic; font-size: 13px; }
     </style>
 </head>
 <body onload="initLocation()">
 
-<header><b style="color:var(--primary); font-size: 18px;">ශ්‍රී ලංකා SMART සෙවුම</b></header>
+<header><b style="color:var(--primary)">ශ්‍රී ලංකා SMART සෙවුම <small style="color:#7b1fa2">(AI)</small></b></header>
 
 <div class="container">
     <div id="locDisplay" class="location-box">ස්ථානය ලබාගනිමින්...</div>
     <div class="grid">
-        <div class="grid-item" onclick="findPro('police', 'පොලිසිය')">🚨<br>පොලිසිය</div>
-        <div class="grid-item" onclick="findPro('hospital', 'රෝහල')">🏥<br>රෝහල්</div>
-        <div class="grid-item" onclick="findPro('fire_station', 'ගිනි නිවන')">🚒<br>ගිනි නිවන</div>
-        <div class="grid-item" onclick="findPro('pharmacy', 'ඔසුසල')">💊<br>ඔසුසල්</div>
-        <div class="grid-item" onclick="findPro('atm', 'ATM')">🏧<br>ATM</div>
-        <div class="grid-item" onclick="findPro('fuel', 'පිරවුම්හල')">⛽<br>ඉන්ධන</div>
+        <div class="grid-item" onclick="startSearch('police', 'පොලිසිය')">🚨<br>පොලිසිය</div>
+        <div class="grid-item" onclick="startSearch('hospital', 'රෝහල')">🏥<br>රෝහල්</div>
+        <div class="grid-item" onclick="startSearch('fire_station', 'ගිනි නිවන')">🚒<br>ගිනි නිවන</div>
+        <div class="grid-item" onclick="startSearch('pharmacy', 'ඔසුසල')">💊<br>ඔසුසල්</div>
+        <div class="grid-item" onclick="startSearch('atm', 'ATM')">🏧<br>ATM</div>
+        <div class="grid-item" onclick="startSearch('fuel', 'පිරවුම්හල')">⛽<br>ඉන්ධන</div>
     </div>
     <div id="results"></div>
 </div>
 
 <script>
     var lat, lon;
+    const GEMINI_API_KEY = "AIzaSyBphi5HUEHNCKV1zr4h5ZI8aKSKAByHPpU";
 
     function initLocation() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(p => {
-                lat = p.coords.latitude;
-                lon = p.coords.longitude;
+                lat = p.coords.latitude; lon = p.coords.longitude;
                 fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
                 .then(r => r.json()).then(d => {
-                    document.getElementById('locDisplay').innerText = "📍 වත්මන් ස්ථානය: " + (d.address.city || d.address.town || "හඳුනාගත්තා");
+                    document.getElementById('locDisplay').innerText = "📍 ස්ථානය: " + (d.address.city || d.address.town || "හඳුනාගත්තා");
                 });
-            }, () => {
-                document.getElementById('locDisplay').innerText = "❌ Location Permission ලබා දෙන්න.";
             });
         }
     }
 
-    async function findPro(type, siName) {
-        if (!lat || !lon) return alert("ස්ථානය ලබාගන්නා තෙක් රැඳී සිටින්න.");
+    async function startSearch(type, siName) {
+        if (!lat) return alert("Location ලබාගන්නා තෙක් සිටින්න.");
         const resDiv = document.getElementById('results');
-        resDiv.innerHTML = `<div class="loading">ළඟම ඇති ${siName} සොයමින්...</div>`;
+        resDiv.innerHTML = `<div class="loading">සොයමින් පවතියි...</div>`;
 
-        const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=${type}](around:10000,${lat},${lon});out 8;`;
-        
         try {
+            const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=${type}](around:10000,${lat},${lon});out 5;`;
             const response = await fetch(overpassUrl);
             const data = await response.json();
-            if (data.elements.length === 0) { resDiv.innerHTML = "කිසිවක් හමු නොවීය."; return; }
+            if (data.elements.length === 0) { resDiv.innerHTML = "හමු නොවීය."; return; }
 
-            let processedResults = [];
-
-            for (let item of data.elements) {
-                const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${lon},${lat};${item.lon},${item.lat}?overview=false`;
-                try {
-                    const osrmRes = await fetch(osrmUrl);
-                    const osrmData = await osrmRes.json();
-                    if (osrmData.routes && osrmData.routes[0]) {
-                        const route = osrmData.routes[0];
-                        processedResults.push({
-                            name: item.tags.name || siName + " මධ්‍යස්ථානය",
-                            phone: item.tags.phone || item.tags["contact:phone"] || "ලබාගත නොහැක",
-                            address: (item.tags["addr:street"] ? item.tags["addr:street"] + ", " : "") + (item.tags["addr:suburb"] || item.tags["addr:city"] || "ප්‍රදේශය අසල"),
-                            distanceValue: route.distance / 1000,
-                            distanceTxt: (route.distance / 1000).toFixed(2) + " KM",
-                            timeTxt: Math.round(route.duration / 60) + " min",
-                            destLat: item.lat,
-                            destLon: item.lon
-                        });
-                    }
-                } catch (e) {}
-            }
-
-            processedResults.sort((a, b) => a.distanceValue - b.distanceValue);
             resDiv.innerHTML = "";
+            for (let item of data.elements) {
+                const cardId = `card-${item.id}`;
+                const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${lon},${lat};${item.lon},${item.lat}?overview=false`;
+                const osrmRes = await fetch(osrmUrl);
+                const osrmData = await osrmRes.json();
+                
+                let dText = "0 KM", tText = "0 min";
+                if (osrmData.routes && osrmData.routes[0]) {
+                    dText = (osrmData.routes[0].distance / 1000).toFixed(2) + " KM";
+                    tText = Math.round(osrmData.routes[0].duration / 60) + " min";
+                }
 
-            processedResults.forEach(res => {
-                // Direction සඳහා වඩාත්ම නිවැරදි URL එක මෙන්න
-                const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${lat},${lon}&destination=${res.destLat},${res.destLon}&travelmode=driving`;
+                const rawName = item.tags.name || siName;
+                const rawAddr = (item.tags["addr:street"] || "") + " " + (item.tags["addr:suburb"] || "");
+                const phone = item.tags.phone || item.tags["contact:phone"] || "ලබාගත නොහැක";
 
+                // මූලික පෙනුම වහාම පෙන්වීම
                 resDiv.innerHTML += `
-                    <div class="result-card">
-                        <h4>${res.name}</h4>
+                    <div class="result-card" id="${cardId}">
+                        <h4 id="title-${cardId}">${rawName}</h4>
                         <div class="badge-row">
-                            <span class="badge dist-badge">🛣️ ${res.distanceTxt}</span>
-                            <span class="badge time-badge">⏱️ ${res.timeTxt} පමණ</span>
+                            <span class="badge dist-badge">🛣️ ${dText}</span>
+                            <span class="badge time-badge">⏱️ ${tText} පමණ</span>
                         </div>
-                        <div class="details">
-                            <b>📍 ලිපිනය:</b> ${res.address}<br>
-                            <b>📞 දුරකථන:</b> ${res.phone}
-                        </div>
+                        <div class="details" id="addr-${cardId}">📍 ${rawAddr || "ප්‍රදේශය අසල"}</div>
                         <div class="action-btns">
-                            <a href="tel:${res.phone}" class="btn call-btn" ${res.phone == 'ලබාගත නොහැක' ? 'style="opacity:0.4;pointer-events:none;"' : ''}>අමතන්න</a>
-                            <a href="${googleMapsUrl}" target="_blank" class="btn dir-btn">🧭 මාර්ගය (Directions)</a>
+                            <a href="tel:${phone}" class="btn call-btn">අමතන්න</a>
+                            <a href="https://www.google.com/maps/dir/?api=1&origin=${lat},${lon}&destination=${item.lat},${item.lon}&travelmode=driving" target="_blank" class="btn dir-btn">මාර්ගය</a>
                         </div>
                     </div>
                 `;
+
+                // AI මගින් විස්තර වැඩිදියුණු කිරීම (Background Process)
+                improveWithAI(cardId, rawName, rawAddr, siName);
+            }
+        } catch (e) { resDiv.innerHTML = "දෝෂයක්!"; }
+    }
+
+    async function improveWithAI(cardId, name, addr, category) {
+        const prompt = `Give a very short, clean Sri Lankan Sinhala name and a 1-sentence Sinhala address for this place: ${name}, ${addr}. Place category: ${category}. Format as JSON: {"name": "...", "address": "..."}`;
+        
+        try {
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
             });
-        } catch (e) {
-            resDiv.innerHTML = "දෝෂයක් සිදු විය.";
-        }
+            const data = await res.json();
+            const text = data.candidates[0].content.parts[0].text;
+            const cleanJson = JSON.parse(text.replace(/```json|```/g, ""));
+            
+            if (cleanJson.name) {
+                document.getElementById(`title-${cardId}`).innerHTML = cleanJson.name + `<span class="ai-badge">AI ✨</span>`;
+                document.getElementById(`addr-${cardId}`).innerHTML = "📍 " + cleanJson.address;
+            }
+        } catch (e) { console.log("AI Limit or Error, using raw data."); }
     }
 </script>
 </body>
