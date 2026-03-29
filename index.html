@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SL Emergency Search - 10KM</title>
+    <title>SL Emergency Search - Advanced</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #d32f2f; --blue: #1976d2; --bg: #f8f9fa; --success: #2e7d32; }
@@ -17,119 +17,8 @@
         .grid-item { background: #fff; border: 1px solid #eee; padding: 15px 5px; border-radius: 12px; text-align: center; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.3s; }
         .grid-item:active { transform: scale(0.95); background: #fff5f5; }
         .icon { font-size: 24px; display: block; margin-bottom: 5px; }
+        
+        /* Result Card Styling */
         .result-card { background: white; border-left: 5px solid var(--primary); padding: 15px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
-        .distance-tag { display: inline-block; background: #fff3e0; color: #e65100; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-top: 5px; }
-        .action-btns { display: flex; gap: 10px; margin-top: 10px; }
-        .dir-btn { flex: 1; background: var(--success); color: white; text-align: center; padding: 10px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold; }
-        .loading-text { text-align: center; color: #666; padding: 20px; }
-    </style>
-</head>
-<body onload="getAutoLocation()">
-
-<header>
-    <button class="emergency-nav-btn">හදිසි සේවා සහ ස්ථාන සෙවුම</button>
-</header>
-
-<div class="container">
-    <div class="card">
-        <div id="locationNameDisplay" class="location-display">ස්ථානය සොයමින් පවතියි...</div>
-
-        <div class="grid">
-            <div class="grid-item" onclick="findNearby('Police', 'පොලිසිය')"><span class="icon">🚨</span>පොලිසිය</div>
-            <div class="grid-item" onclick="findNearby('Hospital', 'රෝහල')"><span class="icon">🏥</span>රෝහල්</div>
-            <div class="grid-item" onclick="findNearby('Fire Station', 'ගිනි නිවන')"><span class="icon">🚒</span>ගිනි නිවන</div>
-            <div class="grid-item" onclick="findNearby('Pharmacy', 'ඔසුසල')"><span class="icon">💊</span>ඔසුසල්</div>
-            <div class="grid-item" onclick="findNearby('ATM', 'ATM')"><span class="icon">🏧</span>ATM</div>
-            <div class="grid-item" onclick="findNearby('Gas Station', 'ඉන්ධන පිරවුම්හල')"><span class="icon">⛽</span>ඉන්ධන</div>
-        </div>
-
-        <div id="resultsArea" class="result-list"></div>
-    </div>
-</div>
-
-<script>
-    let userLat = null, userLon = null;
-
-    // 1. පිටුව පටන් ගන්නා විටම Location ලබාගැනීම
-    function getAutoLocation() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(position => {
-                userLat = position.coords.latitude;
-                userLon = position.coords.longitude;
-                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${userLat}&lon=${userLon}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        document.getElementById('locationNameDisplay').innerText = "📍 වත්මන් ස්ථානය: " + (data.address.city || data.address.town || "ලබාගත්තා");
-                    });
-            }, () => {
-                document.getElementById('locationNameDisplay').innerText = "❌ කරුණාකර Location Permission 'Allow' කරන්න.";
-            });
-        }
-    }
-
-    // 2. දුර ගණනය කිරීමේ සූත්‍රය (Haversine Formula)
-    function calculateDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371; // පෘථිවියේ අරය (KM)
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                  Math.sin(dLon/2) * Math.sin(dLon/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        return (R * c).toFixed(2); // දශම දෙකකට දුර ලබාදෙයි
-    }
-
-    // 3. 10km ඇතුළත ස්ථාන සෙවීම
-    async function findNearby(category, siName) {
-        if (!userLat) { alert("ස්ථානය හඳුනාගනිමින් පවතියි. කරුණාකර මොහොතක් රැඳී සිටින්න."); return; }
-
-        const resultsArea = document.getElementById('resultsArea');
-        resultsArea.innerHTML = `<div class="loading-text">10km ඇතුළත ${siName} සොයමින් පවතියි...</div>`;
-
-        let tag = "";
-        if(category === 'Police') tag = 'amenity=police';
-        if(category === 'Hospital') tag = 'amenity=hospital';
-        if(category === 'Fire Station') tag = 'amenity=fire_station';
-        if(category === 'Pharmacy') tag = 'amenity=pharmacy';
-        if(category === 'ATM') tag = 'amenity=atm';
-        if(category === 'Gas Station') tag = 'amenity=fuel';
-
-        // සෙවුම් පරාසය (around:10000) = 10km
-        const query = `[out:json];node[${tag}](around:10000,${userLat},${userLon});out;`;
-        const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
-
-        try {
-            const response = await fetch(url);
-            const data = await response.json();
-            resultsArea.innerHTML = `<h4>සොයාගත් ස්ථාන (${data.elements.length})</h4>`;
-
-            if (data.elements.length === 0) {
-                resultsArea.innerHTML = `<p class="loading-text">10km ඇතුළත ${siName} හමු නොවීය.</p>`;
-                return;
-            }
-
-            // දුර අනුව ස්ථාන පෙළගැස්වීම (ළඟම ඇති ස්ථානය මුලට)
-            const sortedPlaces = data.elements.map(p => {
-                p.distance = calculateDistance(userLat, userLon, p.lat, p.lon);
-                return p;
-            }).sort((a, b) => a.distance - b.distance);
-
-            sortedPlaces.forEach(place => {
-                const name = place.tags.name || `${siName} මධ්‍යස්ථානය`;
-                resultsArea.innerHTML += `
-                    <div class="result-card">
-                        <h4>${name}</h4>
-                        <span class="distance-tag">📏 දුර: ${place.distance} km</span>
-                        <div class="action-btns">
-                            <a href="https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLon}&destination=${place.lat},${place.lon}" target="_blank" class="dir-btn">🧭 මාර්ගය (Directions)</a>
-                        </div>
-                    </div>
-                `;
-            });
-        } catch (e) {
-            resultsArea.innerHTML = "<p>දත්ත ලබාගැනීමට නොහැකි විය.</p>";
-        }
-    }
-</script>
-</body>
-</html>
+        .result-card h4 { margin: 0 0 5px 0; font-size: 16px; color: #333; }
+        .distance-tag { display: inline-block; background: #e8f5e9; color: #2e7d32; padding: 2
