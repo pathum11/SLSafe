@@ -53,4 +53,111 @@
 
         <div class="grid">
             <div class="grid-item" onclick="findNearby('Police', 'පොලිසිය')"><span class="icon">🚨</span>පොලිසිය</div>
-            <div class="grid-item" onclick="findNearby('Hospital', 'ර
+            <div class="grid-item" onclick="findNearby('Hospital', 'රෝහල')"><span class="icon">🏥</span>රෝහල්</div>
+            <div class="grid-item" onclick="findNearby('Fire Station', 'ගිනි නිවන')"><span class="icon">🚒</span>ගිනි නිවන</div>
+            <div class="grid-item" onclick="findNearby('Pharmacy', 'ඔසුසල')"><span class="icon">💊</span>ඔසුසල්</div>
+            <div class="grid-item" onclick="findNearby('ATM', 'ATM')"><span class="icon">🏧</span>ATM</div>
+            <div class="grid-item" onclick="findNearby('Gas Station', 'ඉන්ධන පිරවුම්හල')"><span class="icon">⛽</span>ඉන්ධන</div>
+        </div>
+
+        <div id="resultsArea" class="result-list">
+            </div>
+    </div>
+</div>
+
+<script>
+    let userLat = null;
+    let userLon = null;
+
+    // 1. ස්ථානය ලබාගැනීම
+    function getAutoLocation() {
+        const display = document.getElementById('locationNameDisplay');
+        display.innerText = "ස්ථානය සොයමින් පවතියි...";
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(position => {
+                userLat = position.coords.latitude;
+                userLon = position.coords.longitude;
+                
+                // නගරයේ නම පෙන්වීම (Reverse Geocoding)
+                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${userLat}&lon=${userLon}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        const city = data.address.city || data.address.town || data.address.suburb || data.address.village || "හඳුනාගත් ප්‍රදේශය";
+                        display.innerText = "📍 වත්මන් ස්ථානය: " + city;
+                    })
+                    .catch(() => {
+                        display.innerText = "📍 ස්ථානය ලබාගත්තා (නගරය හඳුනාගත නොහැක)";
+                    });
+            }, (error) => {
+                alert("ස්ථානය ලබාගැනීමට අවසර ලබා දිය යුතුය.");
+                display.innerText = "ස්ථානය ලබාගැනීමට අසමත් විය.";
+            });
+        } else {
+            alert("ඔබේ බ්‍රවුසරය මෙය සහය නොදක්වයි.");
+        }
+    }
+
+    // 2. දත්ත ලබාගෙන ලැයිස්තුවක් ලෙස පෙන්වීම
+    async function findNearby(category, siName) {
+        if (!userLat || !userLon) {
+            alert("කරුණාකර පළමුව 'Auto Location' ලබාගන්න.");
+            return;
+        }
+
+        const resultsArea = document.getElementById('resultsArea');
+        resultsArea.innerHTML = `<div class="loading-text">ළඟම ඇති ${siName} සොයමින් පවතියි...</div>`;
+
+        // API Tags සැකසීම
+        let tag = "";
+        if(category === 'Police') tag = 'amenity=police';
+        if(category === 'Hospital') tag = 'amenity=hospital';
+        if(category === 'Fire Station') tag = 'amenity=fire_station';
+        if(category === 'Pharmacy') tag = 'amenity=pharmacy';
+        if(category === 'ATM') tag = 'amenity=atm';
+        if(category === 'Gas Station') tag = 'amenity=fuel';
+
+        // Overpass API Query (මීටර් 5000ක් ඇතුළත ස්ථාන 10ක් ලබාගැනීම)
+        const query = `[out:json];node[${tag}](around:5000,${userLat},${userLon});out 10;`;
+        const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            resultsArea.innerHTML = `<h4 style="margin-bottom:15px;">ප්‍රතිඵල (${data.elements.length}):</h4>`;
+
+            if (data.elements.length === 0) {
+                resultsArea.innerHTML = `<p class="loading-text">කණගාටුයි, ඔබේ ප්‍රදේශයට ආසන්නව ${siName} හමු නොවීය.</p>`;
+                return;
+            }
+
+            data.elements.forEach(place => {
+                const name = place.tags.name || `නමක් නොමැති ${siName} මධ්‍යස්ථානයක්`;
+                const lat = place.lat;
+                const lon = place.lon;
+                const street = place.tags["addr:street"] || "";
+
+                const card = `
+                    <div class="result-card">
+                        <h4>${name}</h4>
+                        <div class="result-info">
+                            වර්ගය: ${siName}<br>
+                            ${street ? 'වීදිය: ' + street : 'ප්‍රදේශය: ලබාගත් ස්ථානය අසල'}
+                        </div>
+                        <div class="action-btns">
+                            <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}" target="_blank" class="dir-btn">🧭 මාර්ගය (Directions)</a>
+                        </div>
+                    </div>
+                `;
+                resultsArea.innerHTML += card;
+            });
+
+        } catch (error) {
+            resultsArea.innerHTML = `<p class="loading-text">දත්ත ලබාගැනීමේදී දෝෂයක් සිදු විය. පසුව උත්සාහ කරන්න.</p>`;
+        }
+    }
+</script>
+
+</body>
+</html>
