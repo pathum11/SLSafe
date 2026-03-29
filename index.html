@@ -3,49 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SL Emergency & Smart Search</title>
+    <title>SL Emergency Search - 10KM</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #d32f2f; --blue: #1976d2; --bg: #f8f9fa; --success: #2e7d32; }
         body { font-family: 'Noto Sans Sinhala', sans-serif; background: var(--bg); margin: 0; padding-bottom: 50px; }
-        
-        header { background: white; padding: 15px; text-align: center; border-bottom: 3px solid var(--primary); position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .emergency-nav-btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; width: 90%; font-weight: bold; cursor: default; }
-
+        header { background: white; padding: 15px; text-align: center; border-bottom: 3px solid var(--primary); position: sticky; top: 0; z-index: 1000; }
+        .emergency-nav-btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; width: 90%; font-weight: bold; }
         .container { max-width: 500px; margin: auto; padding: 15px; }
         .card { background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        
         .location-display { background: #e3f2fd; padding: 12px; border-radius: 8px; font-size: 14px; color: #1565c0; margin: 15px 0; font-weight: bold; text-align: center; border: 1px dashed #1976d2; }
-
         .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-        .grid-item { background: #fff; border: 1px solid #eee; padding: 15px 5px; border-radius: 12px; text-align: center; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .grid-item:hover { background: #fff5f5; border-color: var(--primary); }
-        .grid-item:active { transform: scale(0.95); }
+        .grid-item { background: #fff; border: 1px solid #eee; padding: 15px 5px; border-radius: 12px; text-align: center; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.3s; }
+        .grid-item:active { transform: scale(0.95); background: #fff5f5; }
         .icon { font-size: 24px; display: block; margin-bottom: 5px; }
-
-        /* Result Cards */
-        .result-list { margin-top: 10px; }
-        .result-card { background: white; border-left: 5px solid var(--primary); padding: 15px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.08); animation: fadeIn 0.5s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .result-card h4 { margin: 0 0 8px 0; color: #333; font-size: 16px; }
-        .result-info { font-size: 13px; color: #666; line-height: 1.5; margin-bottom: 10px; }
-        
-        .action-btns { display: flex; gap: 10px; }
-        .dir-btn { flex: 1; background: var(--success); color: white; text-align: center; padding: 10px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold; transition: 0.2s; }
-        .dir-btn:hover { background: #1b5e20; }
-
-        .loading-text { text-align: center; color: #666; font-style: italic; padding: 20px; }
+        .result-card { background: white; border-left: 5px solid var(--primary); padding: 15px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
+        .distance-tag { display: inline-block; background: #fff3e0; color: #e65100; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-top: 5px; }
+        .action-btns { display: flex; gap: 10px; margin-top: 10px; }
+        .dir-btn { flex: 1; background: var(--success); color: white; text-align: center; padding: 10px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold; }
+        .loading-text { text-align: center; color: #666; padding: 20px; }
     </style>
 </head>
-<body onload="getAutoLocation()"> <header>
+<body onload="getAutoLocation()">
+
+<header>
     <button class="emergency-nav-btn">හදිසි සේවා සහ ස්ථාන සෙවුම</button>
 </header>
 
 <div class="container">
     <div class="card">
-        <h3 style="text-align: center;">📍 ස්ථානය හඳුනාගැනීම</h3>
-        
         <div id="locationNameDisplay" class="location-display">ස්ථානය සොයමින් පවතියි...</div>
 
         <div class="grid">
@@ -57,53 +43,48 @@
             <div class="grid-item" onclick="findNearby('Gas Station', 'ඉන්ධන පිරවුම්හල')"><span class="icon">⛽</span>ඉන්ධන</div>
         </div>
 
-        <div id="resultsArea" class="result-list">
-            </div>
+        <div id="resultsArea" class="result-list"></div>
     </div>
 </div>
 
 <script>
-    let userLat = null;
-    let userLon = null;
+    let userLat = null, userLon = null;
 
-    // 1. ස්ථානය ලබාගැනීම (පිටුව විවෘත වූ සැනින් ක්‍රියාත්මක වේ)
+    // 1. පිටුව පටන් ගන්නා විටම Location ලබාගැනීම
     function getAutoLocation() {
-        const display = document.getElementById('locationNameDisplay');
-
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(position => {
                 userLat = position.coords.latitude;
                 userLon = position.coords.longitude;
-                
-                // නගරයේ නම පෙන්වීම
                 fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${userLat}&lon=${userLon}`)
                     .then(res => res.json())
                     .then(data => {
-                        const city = data.address.city || data.address.town || data.address.suburb || data.address.village || "ඔබේ ප්‍රදේශය";
-                        display.innerText = "📍 වත්මන් ස්ථානය: " + city;
-                    })
-                    .catch(() => {
-                        display.innerText = "📍 ස්ථානය ලබාගත්තා (නගරය හඳුනාගත නොහැක)";
+                        document.getElementById('locationNameDisplay').innerText = "📍 වත්මන් ස්ථානය: " + (data.address.city || data.address.town || "ලබාගත්තා");
                     });
-            }, (error) => {
-                display.innerText = "❌ Location ලබාගැනීමට අවසර නැත. කරුණාකර 'Allow' කරන්න.";
-                console.error(error);
+            }, () => {
+                document.getElementById('locationNameDisplay').innerText = "❌ කරුණාකර Location Permission 'Allow' කරන්න.";
             });
-        } else {
-            display.innerText = "❌ ඔබේ බ්‍රවුසරය මෙය සහය නොදක්වයි.";
         }
     }
 
-    // 2. අසල ඇති ස්ථාන සෙවීම
+    // 2. දුර ගණනය කිරීමේ සූත්‍රය (Haversine Formula)
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; // පෘථිවියේ අරය (KM)
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return (R * c).toFixed(2); // දශම දෙකකට දුර ලබාදෙයි
+    }
+
+    // 3. 10km ඇතුළත ස්ථාන සෙවීම
     async function findNearby(category, siName) {
-        if (!userLat || !userLon) {
-            alert("කරුණාකර පළමුව බ්‍රවුසරයේ Location Permission 'Allow' කරන්න.");
-            getAutoLocation(); // නැවත උත්සාහ කරන්න
-            return;
-        }
+        if (!userLat) { alert("ස්ථානය හඳුනාගනිමින් පවතියි. කරුණාකර මොහොතක් රැඳී සිටින්න."); return; }
 
         const resultsArea = document.getElementById('resultsArea');
-        resultsArea.innerHTML = `<div class="loading-text">ළඟම ඇති ${siName} සොයමින් පවතියි...</div>`;
+        resultsArea.innerHTML = `<div class="loading-text">10km ඇතුළත ${siName} සොයමින් පවතියි...</div>`;
 
         let tag = "";
         if(category === 'Police') tag = 'amenity=police';
@@ -113,45 +94,42 @@
         if(category === 'ATM') tag = 'amenity=atm';
         if(category === 'Gas Station') tag = 'amenity=fuel';
 
-        const query = `[out:json];node[${tag}](around:5000,${userLat},${userLon});out 10;`;
+        // සෙවුම් පරාසය (around:10000) = 10km
+        const query = `[out:json];node[${tag}](around:10000,${userLat},${userLon});out;`;
         const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
 
         try {
             const response = await fetch(url);
             const data = await response.json();
-            
-            resultsArea.innerHTML = `<h4 style="margin-bottom:15px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">සොයාගත් ${siName} (${data.elements.length})</h4>`;
+            resultsArea.innerHTML = `<h4>සොයාගත් ස්ථාන (${data.elements.length})</h4>`;
 
             if (data.elements.length === 0) {
-                resultsArea.innerHTML = `<p class="loading-text">කණගාටුයි, ඔබේ ප්‍රදේශයට 5kmක් ඇතුළත ${siName} හමු නොවීය.</p>`;
+                resultsArea.innerHTML = `<p class="loading-text">10km ඇතුළත ${siName} හමු නොවීය.</p>`;
                 return;
             }
 
-            data.elements.forEach(place => {
-                const name = place.tags.name || `නමක් නොමැති ${siName} මධ්‍යස්ථානයක්`;
-                const lat = place.lat;
-                const lon = place.lon;
+            // දුර අනුව ස්ථාන පෙළගැස්වීම (ළඟම ඇති ස්ථානය මුලට)
+            const sortedPlaces = data.elements.map(p => {
+                p.distance = calculateDistance(userLat, userLon, p.lat, p.lon);
+                return p;
+            }).sort((a, b) => a.distance - b.distance);
 
-                const card = `
+            sortedPlaces.forEach(place => {
+                const name = place.tags.name || `${siName} මධ්‍යස්ථානය`;
+                resultsArea.innerHTML += `
                     <div class="result-card">
                         <h4>${name}</h4>
-                        <div class="result-info">
-                            වර්ගය: ${siName}<br>
-                            ප්‍රදේශය: ඔබේ වත්මන් ස්ථානයට ආසන්නව
-                        </div>
+                        <span class="distance-tag">📏 දුර: ${place.distance} km</span>
                         <div class="action-btns">
-                            <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}" target="_blank" class="dir-btn">🧭 මාර්ගය (Directions)</a>
+                            <a href="https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLon}&destination=${place.lat},${place.lon}" target="_blank" class="dir-btn">🧭 මාර්ගය (Directions)</a>
                         </div>
                     </div>
                 `;
-                resultsArea.innerHTML += card;
             });
-
-        } catch (error) {
-            resultsArea.innerHTML = `<p class="loading-text">දත්ත ලබාගැනීමේදී දෝෂයක් සිදු විය.</p>`;
+        } catch (e) {
+            resultsArea.innerHTML = "<p>දත්ත ලබාගැනීමට නොහැකි විය.</p>";
         }
     }
 </script>
-
 </body>
 </html>
