@@ -3,87 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SL Smart Search AI - 2026</title>
+    <title>SL Smart System - Fixed</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #d32f2f; --blue: #1976d2; --bg: #f8f9fa; --dark: #1a1c23; }
+        :root { --primary: #d32f2f; --blue: #1976d2; --bg: #f8f9fa; }
         body { font-family: 'Noto Sans Sinhala', sans-serif; background: var(--bg); margin: 0; padding: 0; }
         
-        .screen { display: none; min-height: 100vh; animation: fadeIn 0.3s ease; }
-        .active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        /* Navigation Screens */
+        .screen { display: none; min-height: 100vh; width: 100%; }
+        .active { display: block !important; }
 
-        header { background: white; padding: 15px; text-align: center; border-bottom: 4px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+        /* Home Page Styles */
+        #homePage { 
+            display: none; flex-direction: column; align-items: center; justify-content: center; 
+            text-align: center; height: 100vh; background: white; 
+        }
+        #homePage.active { display: flex !important; }
+        .hero-btn { 
+            width: 85%; max-width: 350px; padding: 20px; margin: 12px; border-radius: 15px; 
+            border: none; font-size: 18px; font-weight: bold; cursor: pointer; color: white; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: 0.2s;
+        }
+        .btn-red { background: var(--primary); }
+        .btn-blue { background: var(--blue); }
+        .hero-btn:active { transform: scale(0.95); }
+
+        /* General Header */
+        header { background: white; padding: 15px; text-align: center; border-bottom: 4px solid var(--primary); position: sticky; top: 0; z-index: 1000; display: flex; align-items: center; justify-content: space-between; }
+        .back-btn { background: none; border: none; font-size: 24px; cursor: pointer; }
+
+        /* Search & Form Elements */
         .container { max-width: 500px; margin: auto; padding: 10px; }
-
-        /* --- Home Page --- */
-        #homePage { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .hero-btn { width: 85%; padding: 20px; margin: 10px; border-radius: 15px; border: none; font-size: 18px; font-weight: bold; cursor: pointer; color: white; transition: 0.2s; }
-        .btn-red { background: var(--primary); box-shadow: 0 4px 15px rgba(211, 47, 47, 0.3); }
-        .btn-blue { background: var(--blue); box-shadow: 0 4px 15px rgba(25, 118, 210, 0.3); }
-
-        /* --- Search System Styles --- */
-        .location-section { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: relative; }
+        .card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: relative; }
         .input-group { display: flex; gap: 8px; }
         .loc-input { flex: 1; padding: 12px; border: 2px solid #eee; border-radius: 8px; font-family: inherit; font-size: 14px; outline: none; }
-        .auto-btn { background: var(--blue); color: white; border: none; padding: 0 15px; border-radius: 8px; cursor: pointer; font-size: 18px; }
-        .suggestions { position: absolute; top: 65px; left: 15px; right: 15px; background: white; border: 1px solid #ddd; border-radius: 8px; z-index: 2000; max-height: 250px; overflow-y: auto; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .suggestion-item { padding: 12px; border-bottom: 1px solid #f0f0f0; cursor: pointer; font-size: 13px; }
-        .status-bar { font-size: 12px; color: #1565c0; margin-top: 10px; text-align: center; font-weight: bold; padding: 8px; background: #e3f2fd; border-radius: 8px; }
-
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 15px; }
-        .grid-item { background: white; border: 1px solid #eee; padding: 12px 2px; border-radius: 12px; text-align: center; cursor: pointer; font-size: 10px; font-weight: bold; }
+        .auto-btn { background: var(--blue); color: white; border: none; padding: 0 15px; border-radius: 8px; cursor: pointer; }
         
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 15px; }
+        .grid-item { background: white; border: 1px solid #eee; padding: 10px 2px; border-radius: 12px; text-align: center; cursor: pointer; font-size: 10px; font-weight: bold; }
+
+        /* Results */
         .result-card { background: white; border-radius: 15px; padding: 15px; margin-bottom: 15px; border-left: 6px solid var(--primary); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
         .mini-map { height: 180px; width: 100%; border-radius: 10px; margin: 10px 0; border: 1px solid #ddd; }
-        .badge { padding: 5px 10px; border-radius: 8px; font-size: 11px; font-weight: bold; color: white; background: #2e7d32; display: inline-flex; }
-        .action-btns { display: flex; gap: 8px; margin-top: 12px; }
-        .btn { flex: 1; text-align: center; padding: 12px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: bold; color: white; border: none; }
-        .call-btn { background: var(--blue); }
-        .dir-btn { background: #2e7d32; }
-
-        /* --- Spam Page Styles --- */
-        .card { background: white; margin-bottom: 15px; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .reason-grid { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
-        .reason-chip { padding: 6px 12px; background: #f0f0f0; border-radius: 20px; font-size: 11px; cursor: pointer; border: 1px solid #ddd; }
+        .action-btns { display: flex; gap: 8px; margin-top: 10px; }
+        .btn { flex: 1; text-align: center; padding: 12px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: bold; color: white; }
+        
+        /* Spam Report */
+        .reason-chip { display: inline-block; padding: 6px 12px; background: #f0f0f0; border-radius: 20px; font-size: 11px; margin: 2px; cursor: pointer; }
         .reason-chip.selected { background: var(--primary); color: white; }
     </style>
 </head>
 <body>
 
 <div id="homePage" class="screen active">
-    <div style="margin-top: 50px;">
-        <h2 style="color: #333;">ශ්‍රී ලංකා Smart පද්ධතිය</h2>
-        <p style="color: #666; margin-bottom: 40px;">ඔබට අවශ්‍ය සේවාව පහතින් තෝරන්න.</p>
-        <button class="hero-btn btn-red" onclick="nav('searchPage'); initAutoLocation();">🚨 හදිසි සේවා සොයන්න</button>
-        <button class="hero-btn btn-blue" onclick="nav('spamPage')">📞 අංක වාර්තා කරන්න</button>
-    </div>
+    <h2 style="color: #333;">ශ්‍රී ලංකා Smart පද්ධතිය</h2>
+    <p style="color: #666; margin-bottom: 30px;">අවශ්‍ය සේවාව තෝරන්න</p>
+    <button class="hero-btn btn-red" onclick="navTo('searchPage')">🚨 හදිසි සේවා සොයන්න</button>
+    <button class="hero-btn btn-blue" onclick="navTo('spamPage')">📞 අංක වාර්තා කරන්න</button>
 </div>
 
 <div id="searchPage" class="screen">
     <header>
-        <button onclick="nav('homePage')" style="float: left; background: none; border: none; font-size: 20px; cursor: pointer;">🏠</button>
-        <b style="color:var(--primary)">ශ්‍රී ලංකා SMART සෙවුම</b>
+        <button class="back-btn" onclick="navTo('homePage')">🏠</button>
+        <b style="color:var(--primary)">SMART සෙවුම</b>
+        <div style="width:30px;"></div>
     </header>
     <div class="container">
-        <div class="location-section">
+        <div class="card">
             <div class="input-group">
                 <input type="text" id="locInput" class="loc-input" placeholder="නගරය ටයිප් කරන්න..." oninput="handleLocInput(this.value)">
                 <button class="auto-btn" onclick="initAutoLocation()">📍</button>
             </div>
-            <div id="suggestionBox" class="suggestions"></div>
-            <div id="statusTxt" class="status-bar">ස්ථානය ලබාගනිමින්...</div>
+            <div id="statusTxt" style="font-size:11px; color:var(--blue); text-align:center; margin-top:8px; font-weight:bold;">ස්ථානය තෝරන්න...</div>
         </div>
-        
         <div class="grid">
-            <div onclick="startSearch('fuel', 'පිරවුම්හල')" class="grid-item"><span style="font-size:20px;">⛽</span><br>ඉන්ධන</div>
-            <div onclick="startSearch('bank', 'බැංකුව')" class="grid-item"><span style="font-size:20px;">🏦</span><br>බැංකු</div>
-            <div onclick="startSearch('hospital', 'රෝහල')" class="grid-item"><span style="font-size:20px;">🏥</span><br>රෝහල්</div>
-            <div onclick="startSearch('police', 'පොලිසිය')" class="grid-item"><span style="font-size:20px;">🚨</span><br>පොලිසිය</div>
-            <div onclick="startSearch('pharmacy', 'ඔසුසල')" class="grid-item"><span style="font-size:20px;">💊</span><br>ඔසුසල්</div>
-            <div onclick="startSearch('atm', 'ATM')" class="grid-item"><span style="font-size:20px;">🏧</span><br>ATM</div>
-            <div onclick="startSearch('Toilet', 'Toilet')" class="grid-item"><span style="font-size:20px;">🏧</span><br>Toilet</div>
+            <div onclick="startSearch('fuel', 'පිරවුම්හල')" class="grid-item">⛽<br>ඉන්ධන</div>
+            <div onclick="startSearch('bank', 'බැංකුව')" class="grid-item">🏦<br>බැංකු</div>
+            <div onclick="startSearch('hospital', 'රෝහල')" class="grid-item">🏥<br>රෝහල්</div>
+            <div onclick="startSearch('police', 'පොලිසිය')" class="grid-item">🚨<br>පොලිසිය</div>
         </div>
         <div id="results"></div>
     </div>
@@ -91,9 +89,14 @@
 
 <div id="spamPage" class="screen">
     <header>
-        <button onclick="nav('homePage')" style="float: left; background: none; border: none; font-size: 20px; cursor: pointer;">🏠</button>
+        <button class="back-btn" onclick="navTo('homePage')">🏠</button>
         <b>අංක වාර්තා කිරීම</b>
+        <div style="width:30px;"></div>
     </header>
     <div class="container">
         <div class="card" style="border-top: 5px solid #333;">
-            <b style="font-size
+            <b style="font-size: 13px;">🔒 Admin පාලක පුවරුව</b>
+            <button style="width:100%; padding:10px; background:#1a1c23; color:white; border:none; border-radius:8px; margin-top:10px; font-size:11px;">අවහිර කළ අංක කළමනාකරණය</button>
+        </div>
+        <div class="card">
+            <b style="color:var(--
