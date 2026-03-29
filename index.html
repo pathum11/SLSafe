@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SL Emergency & Blocked Numbers</title>
+    <style>
+        :root { --primary: #d32f2f; --secondary: #2c3e50; --light: #f4f4f4; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: var(--light); }
+        header { background: var(--primary); color: white; padding: 1rem; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .container { padding: 20px; max-width: 600px; margin: auto; }
+        .card { background: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h3 { margin-top: 0; color: var(--secondary); border-bottom: 2px solid var(--primary); padding-bottom: 5px; }
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { opacity: 0.9; }
+        .emergency-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }
+        .emergency-item a { color: var(--primary); font-weight: bold; text-decoration: none; }
+        .list-item { background: #fffde7; padding: 10px; border-left: 5px solid #fbc02d; margin-top: 5px; border-radius: 3px; }
+        .status-online { color: green; font-size: 0.8rem; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h2>ශ්‍රී ලංකා හදිසි සේවා</h2>
+    <span class="status-online">● ONLINE</span>
+</header>
+
+<div class="container">
+    <div class="card">
+        <h3>හදිසි සේවා (Emergency)</h3>
+        <div class="emergency-item"><span>පොලිස් හදිසි ඇමතුම්</span> <a href="tel:119">119</a></div>
+        <div class="emergency-item"><span>සුවසැරිය ගිලන් රථ</span> <a href="tel:1990">1990</a></div>
+        <div class="emergency-item"><span>ගිනි නිවන ඒකකය</span> <a href="tel:110">110</a></div>
+        <div class="emergency-item"><span>අනතුරු ඇඟවීමේ මධ්‍යස්ථානය</span> <a href="tel:117">117</a></div>
+    </div>
+
+    <div class="card">
+        <h3>අංකයක් සොයන්න</h3>
+        <input type="text" id="searchBox" placeholder="අංකය ඇතුළත් කරන්න..." onkeyup="searchNumber()">
+        <div id="searchResult"></div>
+    </div>
+
+    <div class="card">
+        <h3>අලුත් අංකයක් ඇතුළත් කරන්න</h3>
+        <input type="text" id="phoneNo" placeholder="දුරකථන අංකය (07XXXXXXXX)">
+        <select id="reason">
+            <option value="Spam Calls">Spam Calls</option>
+            <option value="Fraud/Scam">Fraud/Scam</option>
+            <option value="Harassment">Harassment</option>
+        </select>
+        <button onclick="addNumber()">ලැයිස්තුවට එක් කරන්න</button>
+    </div>
+
+    <div class="card">
+        <h3>වාර්තා වූ අංක ලැයිස්තුව</h3>
+        <div id="blockList"></div>
+    </div>
+</div>
+
+<script>
+    let blockedNumbers = JSON.parse(localStorage.getItem('blockedData')) || [];
+
+    function addNumber() {
+        const num = document.getElementById('phoneNo').value;
+        const res = document.getElementById('reason').value;
+        if(num === "") return alert("අංකය ඇතුළත් කරන්න!");
+
+        blockedNumbers.push({ number: num, reason: res });
+        localStorage.setItem('blockedData', JSON.stringify(blockedNumbers));
+        document.getElementById('phoneNo').value = "";
+        displayList();
+    }
+
+    function displayList() {
+        const listDiv = document.getElementById('blockList');
+        listDiv.innerHTML = "";
+        blockedNumbers.forEach((item, index) => {
+            listDiv.innerHTML += `<div class="list-item"><b>${item.number}</b> - ${item.reason}</div>`;
+        });
+    }
+
+    function searchNumber() {
+        const s = document.getElementById('searchBox').value;
+        const resultDiv = document.getElementById('searchResult');
+        if(s === "") { resultDiv.innerHTML = ""; return; }
+        
+        const found = blockedNumbers.find(item => item.number.includes(s));
+        if(found) {
+            resultDiv.innerHTML = `<p style="color:red;">⚠️ මෙම අංකය වාර්තා කර ඇත: ${found.reason}</p>`;
+        } else {
+            resultDiv.innerHTML = `<p style="color:green;">✅ ආරක්ෂිත අංකයකි.</p>`;
+        }
+    }
+
+    displayList();
+</script>
+
+</body>
+</html>
