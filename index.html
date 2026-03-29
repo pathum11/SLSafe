@@ -3,36 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SL Smart Search - 10KM Fixed</title>
+    <title>SL Smart Search AI - Village Name Fix</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #d32f2f; --blue: #1976d2; --bg: #ffffff; }
-        body { font-family: 'Noto Sans Sinhala', sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
-        header { background: white; padding: 15px; text-align: center; border-bottom: 4px solid var(--primary); position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        :root { --primary: #d32f2f; --blue: #1976d2; --bg: #f8f9fa; }
+        body { font-family: 'Noto Sans Sinhala', sans-serif; background: var(--bg); margin: 0; padding: 0; }
+        header { background: white; padding: 15px; text-align: center; border-bottom: 4px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
         .container { max-width: 500px; margin: auto; padding: 10px; }
-        
         .location-box { background: #e3f2fd; padding: 12px; border-radius: 10px; font-size: 13px; color: #1565c0; margin-bottom: 15px; text-align: center; font-weight: bold; border: 1px solid #bbdefb; }
-        
-        .search-container { background: white; padding: 10px; border-radius: 10px; margin-bottom: 15px; display: none; }
-        .search-input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-family: inherit; }
-
         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 15px; }
-        .grid-item { background: white; border: 1px solid #eee; padding: 10px 2px; border-radius: 12px; text-align: center; cursor: pointer; font-size: 10px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .icon { font-size: 20px; display: block; margin-bottom: 5px; }
-
-        .result-card { background: white; border-radius: 15px; padding: 15px; margin-bottom: 15px; border-left: 5px solid var(--primary); box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
-        .mini-map { height: 180px; width: 100%; border-radius: 10px; margin: 10px 0; border: 1px solid #ddd; background: #eee; }
-        
-        .badge { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; color: white; display: inline-block; margin-right: 5px; margin-bottom: 5px; }
+        .grid-item { background: white; border: 1px solid #eee; padding: 12px 2px; border-radius: 12px; text-align: center; cursor: pointer; font-size: 10px; font-weight: bold; transition: 0.2s; }
+        .grid-item:active { transform: scale(0.95); background: #fff5f5; }
+        .icon { font-size: 22px; display: block; margin-bottom: 5px; }
+        .result-card { background: white; border-radius: 15px; padding: 15px; margin-bottom: 15px; border-left: 6px solid var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+        .mini-map { height: 170px; width: 100%; border-radius: 10px; margin: 10px 0; border: 1px solid #ddd; background: #eee; }
+        .badge { padding: 5px 10px; border-radius: 8px; font-size: 11px; font-weight: bold; color: white; display: inline-block; }
         .dist-badge { background: #2e7d32; }
-        .time-badge { background: #e65100; }
-        
-        .action-btns { display: flex; gap: 8px; margin-top: 10px; }
-        .btn { flex: 1; text-align: center; padding: 12px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: bold; color: white; border: none; }
+        .action-btns { display: flex; gap: 8px; margin-top: 12px; }
+        .btn { flex: 1; text-align: center; padding: 12px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: bold; color: white; border: none; cursor: pointer; }
         .call-btn { background: var(--blue); }
         .dir-btn { background: #2e7d32; }
-        .loading { text-align: center; padding: 20px; color: #666; font-weight: bold; }
+        .loading { text-align: center; padding: 30px; font-size: 14px; color: #666; font-weight: bold; }
     </style>
 </head>
 <body onload="initLocation()">
@@ -41,17 +33,13 @@
 
 <div class="container">
     <div id="locDisplay" class="location-box">📍 ස්ථානය ලබාගනිමින්...</div>
-
-    <div id="bankSearch" class="search-container">
-        <input type="text" id="bankInput" class="search-input" placeholder="බැංකුවේ නම (BOC, Sampath...)" onkeyup="filterBanks()">
-    </div>
     
     <div class="grid">
-        <div class="grid-item" onclick="toggleSearch('bank', 'බැංකුව')"><span class="icon">🏦</span>බැංකු</div>
-        <div class="grid-item" onclick="toggleSearch('atm', 'ATM')"><span class="icon">🏧</span>ATM</div>
         <div class="grid-item" onclick="startSearch('fuel', 'පිරවුම්හල')"><span class="icon">⛽</span>ඉන්ධන</div>
-        <div class="grid-item" onclick="startSearch('police', 'පොලිසිය')"><span class="icon">🚨</span>පොලිසිය</div>
+        <div class="grid-item" onclick="startSearch('bank', 'බැංකුව')"><span class="icon">🏦</span>බැංකු</div>
+        <div class="grid-item" onclick="startSearch('atm', 'ATM')"><span class="icon">🏧</span>ATM</div>
         <div class="grid-item" onclick="startSearch('hospital', 'රෝහල')"><span class="icon">🏥</span>රෝහල්</div>
+        <div class="grid-item" onclick="startSearch('police', 'පොලිසිය')"><span class="icon">🚨</span>පොලිසිය</div>
         <div class="grid-item" onclick="startSearch('pharmacy', 'ඔසුසල')"><span class="icon">💊</span>ඔසුසල්</div>
         <div class="grid-item" onclick="startSearch('car_repair', 'සර්විස්')"><span class="icon">🛠️</span>සර්විස්</div>
         <div class="grid-item" onclick="startSearch('toilets', 'වැසිකිළි')"><span class="icon">🚻</span>වැසිකිළි</div>
@@ -62,75 +50,62 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    var uLat, uLon, allResults = [];
+    var uLat, uLon;
     const API_KEY = "AIzaSyBphi5HUEHNCKV1zr4h5ZI8aKSKAByHPpU";
 
     function initLocation() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(p => {
-                uLat = p.coords.latitude; 
-                uLon = p.coords.longitude;
+                uLat = p.coords.latitude; uLon = p.coords.longitude;
                 document.getElementById('locDisplay').innerHTML = "<span style='color:green'>📍 ස්ථානය හඳුනාගත්තා</span>";
-            }, (err) => {
-                document.getElementById('locDisplay').innerHTML = "<span style='color:red'>❌ Location ලබාදෙන්න (GPS On කරන්න)</span>";
-            }, { timeout: 10000 });
-        } else {
-            document.getElementById('locDisplay').innerText = "❌ Browser එක සහය නොදක්වයි.";
+            }, () => {
+                document.getElementById('locDisplay').innerHTML = "<span style='color:red'>❌ කරුණාකර GPS On කරන්න.</span>";
+            });
         }
     }
 
-    function toggleSearch(type, name) {
-        document.getElementById('bankSearch').style.display = 'block';
-        startSearch(type, name);
-    }
-
     async function startSearch(type, siName) {
-        if (!uLat) return alert("කරුණාකර ස්ථානය (GPS) ලබාගන්නා තෙක් සිටින්න.");
+        if (!uLat) return alert("ස්ථානය ලබාගන්නා තෙක් සිටින්න.");
         const resDiv = document.getElementById('results');
-        resDiv.innerHTML = `<div class="loading">10km ඇතුළත ${siName} සොයමින්...</div>`;
-
-        let tag = `amenity=${type}`;
-        if(type === 'bank' || type === 'atm') tag = `amenity=${type}`;
+        resDiv.innerHTML = `<div class="loading">10km ඇතුළත ${siName} සොයමින්... <br><small>ගමේ නම් පරීක්ෂා කරමින්</small></div>`;
 
         try {
-            const url = `https://overpass-api.de/api/interpreter?data=[out:json];node[${tag}](around:10000,${uLat},${uLon});out;`;
+            const url = `https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=${type}](around:10000,${uLat},${uLon});out;`;
             const response = await fetch(url);
             const data = await response.json();
             
-            allResults = [];
+            let list = [];
             for (let item of data.elements) {
-                // සරල දුර ගණනය (වැඩි වේගයක් සඳහා)
+                let name = item.tags.name;
+                
+                // නමක් නැතිනම් ගමේ නම සොයයි
+                if (!name) {
+                    try {
+                        const geo = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${item.lat}&lon=${item.lon}`);
+                        const geoData = await geo.json();
+                        const village = geoData.address.suburb || geoData.address.village || geoData.address.town || geoData.address.neighbourhood || "";
+                        name = village ? `${siName} (${village})` : siName;
+                    } catch(e) { name = siName; }
+                }
+
                 const d = getDistance(uLat, uLon, item.lat, item.lon);
-                allResults.push({
-                    id: item.id,
-                    name: item.tags.name || siName,
-                    phone: item.tags.phone || "",
-                    distTxt: d.toFixed(2) + " KM",
-                    distVal: d,
-                    lat: item.lat, 
-                    lon: item.lon
-                });
+                list.push({ id: item.id, name, dist: d, lat: item.lat, lon: item.lon, phone: item.tags.phone || "" });
             }
-            allResults.sort((a, b) => a.distVal - b.distVal);
-            renderResults(allResults);
-        } catch (e) { resDiv.innerHTML = "<div class='loading'>දත්ත ලබාගැනීමේ දෝෂයකි.</div>"; }
+
+            list.sort((a, b) => a.dist - b.dist);
+            render(list);
+        } catch (e) { resDiv.innerHTML = "දෝෂයකි!"; }
     }
 
-    function getDistance(lat1, lon1, lat2, lon2) {
-        var R = 6371; 
-        var dLat = (lat2-lat1) * Math.PI / 180;
-        var dLon = (lon2-lon1) * Math.PI / 180;
-        var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+    function getDistance(l1, n1, l2, n2) {
+        let R = 6371;
+        let dL = (l2-l1)*Math.PI/180;
+        let dN = (n2-n1)*Math.PI/180;
+        let a = Math.sin(dL/2)**2 + Math.cos(l1*Math.PI/180)*Math.cos(l2*Math.PI/180)*Math.sin(dN/2)**2;
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
-    function filterBanks() {
-        const val = document.getElementById('bankInput').value.toLowerCase();
-        renderResults(allResults.filter(r => r.name.toLowerCase().includes(val)));
-    }
-
-    function renderResults(list) {
+    function render(list) {
         const resDiv = document.getElementById('results');
         resDiv.innerHTML = `<p style="text-align:center; font-size:11px;">ස්ථාන ${list.length} ක් හමු විය.</p>`;
         list.forEach(res => {
@@ -138,31 +113,27 @@
             resDiv.innerHTML += `
                 <div class="result-card">
                     <h4 id="t-${res.id}">${res.name}</h4>
-                    <span class="badge dist-badge">🛣️ ${res.distTxt}</span>
+                    <span class="badge dist-badge">🛣️ ${res.dist.toFixed(2)} KM</span>
                     <div id="${mid}" class="mini-map"></div>
                     <div class="action-btns">
                         <a href="tel:${res.phone}" class="btn call-btn" ${!res.phone ? 'style="display:none"' : ''}>අමතන්න</a>
                         <a href="https://www.google.com/maps/dir/?api=1&destination=${res.lat},${res.lon}" target="_blank" class="btn dir-btn">මාර්ගය (Maps)</a>
                     </div>
                 </div>`;
-            
             setTimeout(() => {
-                try {
-                    var map = L.map(mid, { zoomControl: false, dragging: true }).setView([res.lat, res.lon], 15);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-                    L.marker([res.lat, res.lon]).addTo(map);
-                } catch(e) { console.log("Map error"); }
-            }, 300);
-            
-            improveWithAI(res.id, res.name);
+                var map = L.map(mid, { zoomControl: false }).setView([res.lat, res.lon], 15);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                L.marker([res.lat, res.lon]).addTo(map);
+            }, 400);
+            improveAI(res.id, res.name);
         });
     }
 
-    async function improveWithAI(id, name) {
+    async function improveAI(id, name) {
         try {
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ contents: [{ parts: [{ text: `Translate "${name}" to clean Sinhala. JSON: {"n":"..."}` }] }] })
+                body: JSON.stringify({ contents: [{ parts: [{ text: `Translate "${name}" to clean short Sinhala. JSON only: {"n":"..."}` }] }] })
             });
             const d = await res.json();
             const clean = JSON.parse(d.candidates[0].content.parts[0].text.replace(/```json|```/g, ""));
