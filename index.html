@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SL Smart Search AI</title>
+    <title>SL Smart Search - 10KM All Places</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #d32f2f; --blue: #1976d2; --bg: #f0f2f5; --success: #2e7d32; }
@@ -16,7 +16,6 @@
         .grid-item:active { background: #fff5f5; transform: scale(0.95); }
         .result-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 12px; border-left: 6px solid var(--primary); box-shadow: 0 3px 8px rgba(0,0,0,0.05); }
         .result-card h4 { margin: 0 0 8px 0; font-size: 15px; color: #1a1a1a; }
-        .ai-badge { background: #f3e5f5; color: #7b1fa2; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 5px; vertical-align: middle; border: 1px solid #e1bee7; }
         .badge-row { display: flex; gap: 5px; margin-bottom: 10px; }
         .badge { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; color: white; }
         .dist-badge { background: #2e7d32; }
@@ -31,7 +30,7 @@
 </head>
 <body onload="initLocation()">
 
-<header><b style="color:var(--primary)">ශ්‍රී ලංකා SMART සෙවුම <small style="color:#7b1fa2">(AI)</small></b></header>
+<header><b style="color:var(--primary)">ශ්‍රී ලංකා SMART සෙවුම (10KM සීමාව)</b></header>
 
 <div class="container">
     <div id="locDisplay" class="location-box">ස්ථානය ලබාගනිමින්...</div>
@@ -65,56 +64,77 @@
     async function startSearch(type, siName) {
         if (!lat) return alert("Location ලබාගන්නා තෙක් සිටින්න.");
         const resDiv = document.getElementById('results');
-        resDiv.innerHTML = `<div class="loading">සොයමින් පවතියි...</div>`;
+        resDiv.innerHTML = `<div class="loading">10km ඇතුළත සියලුම ${siName} සොයමින්...</div>`;
 
         try {
-            const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=${type}](around:10000,${lat},${lon});out 5;`;
+            // "out;" ලෙස වෙනස් කිරීමෙන් සියලුම ප්‍රතිඵල ලැබේ (සීමාවක් නැත)
+            const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=${type}](around:10000,${lat},${lon});out;`;
             const response = await fetch(overpassUrl);
             const data = await response.json();
-            if (data.elements.length === 0) { resDiv.innerHTML = "හමු නොවීය."; return; }
+            
+            if (data.elements.length === 0) { 
+                resDiv.innerHTML = "10km ඇතුළත කිසිදු ස්ථානයක් හමු නොවීය."; 
+                return; 
+            }
 
-            resDiv.innerHTML = "";
+            resDiv.innerHTML = `<p style='font-size:12px; text-align:center;'>ස්ථාන ${data.elements.length} ක් හමු විය. දුර ගණනය කරමින්...</p>`;
+
+            let processedResults = [];
+
+            // සියලුම ස්ථාන සඳහා පාර දිගේ දුර ගණනය කිරීම
             for (let item of data.elements) {
-                const cardId = `card-${item.id}`;
-                const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${lon},${lat};${item.lon},${item.lat}?overview=false`;
-                const osrmRes = await fetch(osrmUrl);
-                const osrmData = await osrmRes.json();
-                
-                let dText = "0 KM", tText = "0 min";
-                if (osrmData.routes && osrmData.routes[0]) {
-                    dText = (osrmData.routes[0].distance / 1000).toFixed(2) + " KM";
-                    tText = Math.round(osrmData.routes[0].duration / 60) + " min";
-                }
+                try {
+                    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${lon},${lat};${item.lon},${item.lat}?overview=false`;
+                    const osrmRes = await fetch(osrmUrl);
+                    const osrmData = await osrmRes.json();
+                    
+                    if (osrmData.routes && osrmData.routes[0]) {
+                        const route = osrmData.routes[0];
+                        processedResults.push({
+                            id: item.id,
+                            name: item.tags.name || siName,
+                            phone: item.tags.phone || item.tags["contact:phone"] || "ලබාගත නොහැක",
+                            addr: (item.tags["addr:street"] || "") + " " + (item.tags["addr:suburb"] || ""),
+                            distVal: route.distance / 1000,
+                            distTxt: (route.distance / 1000).toFixed(2) + " KM",
+                            timeTxt: Math.round(route.duration / 60) + " min",
+                            lat: item.lat,
+                            lon: item.lon
+                        });
+                    }
+                } catch (e) { console.log("Distance error for one item"); }
+            }
 
-                const rawName = item.tags.name || siName;
-                const rawAddr = (item.tags["addr:street"] || "") + " " + (item.tags["addr:suburb"] || "");
-                const phone = item.tags.phone || item.tags["contact:phone"] || "ලබාගත නොහැක";
+            // දුර අනුව පෙළගැස්වීම (ළඟම එක මුලට)
+            processedResults.sort((a, b) => a.distVal - b.distVal);
 
-                // මූලික පෙනුම වහාම පෙන්වීම
+            resDiv.innerHTML = ""; // කලින් තිබූ loading පණිවිඩය ඉවත් කිරීම
+            
+            processedResults.forEach(res => {
+                const cardId = `card-${res.id}`;
                 resDiv.innerHTML += `
                     <div class="result-card" id="${cardId}">
-                        <h4 id="title-${cardId}">${rawName}</h4>
+                        <h4 id="title-${cardId}">${res.name}</h4>
                         <div class="badge-row">
-                            <span class="badge dist-badge">🛣️ ${dText}</span>
-                            <span class="badge time-badge">⏱️ ${tText} පමණ</span>
+                            <span class="badge dist-badge">🛣️ ${res.distTxt}</span>
+                            <span class="badge time-badge">⏱️ ${res.timeTxt} පමණ</span>
                         </div>
-                        <div class="details" id="addr-${cardId}">📍 ${rawAddr || "ප්‍රදේශය අසල"}</div>
+                        <div class="details" id="addr-${cardId}">📍 ${res.addr || "ප්‍රදේශය අසල"}</div>
                         <div class="action-btns">
-                            <a href="tel:${phone}" class="btn call-btn">අමතන්න</a>
-                            <a href="https://www.google.com/maps/dir/?api=1&origin=${lat},${lon}&destination=${item.lat},${item.lon}&travelmode=driving" target="_blank" class="btn dir-btn">මාර්ගය</a>
+                            <a href="tel:${res.phone}" class="btn call-btn">අමතන්න</a>
+                            <a href="https://www.google.com/maps/dir/?api=1&origin=${lat},${lon}&destination=${res.lat},${res.lon}&travelmode=driving" target="_blank" class="btn dir-btn">මාර්ගය</a>
                         </div>
                     </div>
                 `;
+                // AI මගින් විස්තර වැඩිදියුණු කිරීම
+                improveWithAI(cardId, res.name, res.addr, siName);
+            });
 
-                // AI මගින් විස්තර වැඩිදියුණු කිරීම (Background Process)
-                improveWithAI(cardId, rawName, rawAddr, siName);
-            }
-        } catch (e) { resDiv.innerHTML = "දෝෂයක්!"; }
+        } catch (e) { resDiv.innerHTML = "දත්ත ලබාගැනීමේ දෝෂයකි!"; }
     }
 
     async function improveWithAI(cardId, name, addr, category) {
-        const prompt = `Give a very short, clean Sri Lankan Sinhala name and a 1-sentence Sinhala address for this place: ${name}, ${addr}. Place category: ${category}. Format as JSON: {"name": "...", "address": "..."}`;
-        
+        const prompt = `Convert to clean Sinhala: Name: ${name}, Address: ${addr}. Category: ${category}. Format as JSON: {"name": "...", "address": "..."}`;
         try {
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
                 method: "POST",
@@ -126,10 +146,10 @@
             const cleanJson = JSON.parse(text.replace(/```json|```/g, ""));
             
             if (cleanJson.name) {
-                document.getElementById(`title-${cardId}`).innerHTML = cleanJson.name + `<span class="ai-badge">AI ✨</span>`;
+                document.getElementById(`title-${cardId}`).innerHTML = cleanJson.name + ` <small style="font-size:9px; color:purple;">✨</small>`;
                 document.getElementById(`addr-${cardId}`).innerHTML = "📍 " + cleanJson.address;
             }
-        } catch (e) { console.log("AI Limit or Error, using raw data."); }
+        } catch (e) { }
     }
 </script>
 </body>
