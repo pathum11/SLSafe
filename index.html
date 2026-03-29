@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SL Smart Guard & Search</title>
+    <title>SL Smart Guard - Final Version</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-auth-compat.js"></script>
@@ -17,7 +17,7 @@
         body { font-family: 'Noto Sans Sinhala', sans-serif; background: var(--bg); margin: 0; padding: 0; }
         .screen { display: none; min-height: 100vh; width: 100%; }
         .active-screen { display: block !important; }
-        .flex-screen { display: flex !important; flex-direction: column; align-items: center; justify-content: center; }
+        .flex-screen { display: flex !important; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
         
         header { background: white; padding: 15px; text-align: center; border-bottom: 4px solid var(--primary); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 1000; }
         .container { max-width: 500px; margin: auto; padding: 10px; }
@@ -31,7 +31,7 @@
         .chip { display: inline-block; padding: 6px 12px; background: #eee; border-radius: 20px; font-size: 11px; margin: 3px; cursor: pointer; border: 1px solid #ddd; }
         .chip.selected { background: var(--primary); color: white; border-color: var(--primary); }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; border-radius: 10px; overflow: hidden; }
         th, td { border: 1px solid #eee; padding: 12px; text-align: left; font-size: 13px; }
         th { background: #f4f4f4; }
         .del-btn { color: white; background: red; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
@@ -39,35 +39,39 @@
 </head>
 <body>
 
-<div id="loginPage" class="screen flex-screen active-screen">
-    <h2>SL Smart Guard</h2>
-    <p style="color: #666; margin-bottom: 20px;">ඉදිරියට යාමට Google ගිණුමෙන් ඇතුල් වන්න</p>
+<div id="loadingPage" class="screen flex-screen active-screen">
+    <p>පද්ධතිය සක්‍රීය වෙමින් පවතී...</p>
+</div>
+
+<div id="loginPage" class="screen flex-screen">
+    <h2 style="font-weight: 700;">SL Smart Guard</h2>
+    <p style="color: #666; margin-bottom: 30px;">ඉදිරියට යාමට Google ගිණුමෙන් ඇතුල් වන්න</p>
     <button class="hero-btn btn-blue" style="display:flex; align-items:center; justify-content:center; gap:10px;" onclick="googleLogin()">
         <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" width="20"> Google Sign In
     </button>
 </div>
 
 <div id="homePage" class="screen flex-screen">
-    <div id="userHeader" style="margin-bottom: 20px; font-weight: bold;"></div>
+    <div id="userHeader" style="margin-bottom: 20px; font-weight: bold; font-size: 18px;"></div>
     <button class="hero-btn btn-red" onclick="showPage('searchPage')">🚨 හදිසි සේවා සොයන්න</button>
-    <button class="hero-btn btn-blue" onclick="showPage('spamPage')">📞 Spam Guard (අංක වාර්තා කිරීම)</button>
+    <button class="hero-btn btn-blue" onclick="showPage('spamPage')">📞 Spam Guard (වාර්තා කිරීම)</button>
     <button id="adminBtn" class="hero-btn" style="background:var(--dark); display:none;" onclick="showPage('adminPage')">⚙️ Admin පාලක මැදිරිය</button>
-    <button onclick="logout()" style="margin-top:20px; border:none; background:none; color:grey; cursor:pointer;">Logout</button>
+    <button onclick="logout()" style="margin-top:20px; border:none; background:none; color:grey; cursor:pointer; text-decoration: underline;">පද්ධතියෙන් ඉවත් වන්න</button>
 </div>
 
 <div id="searchPage" class="screen">
     <header>
-        <button onclick="showPage('homePage')" style="border:none; background:none; font-size:20px;">🏠</button>
+        <button onclick="showPage('homePage')" style="border:none; background:none; font-size:24px; cursor:pointer;">🏠</button>
         <b>SMART සෙවුම</b>
-        <div style="width:30px;"></div>
+        <div style="width:34px;"></div>
     </header>
     <div class="container">
         <div class="card">
             <div style="display:flex; gap:8px;">
                 <input type="text" id="manualCity" class="input-box" style="margin:0;" placeholder="නගරය ඇතුළත් කරන්න...">
-                <button onclick="manualSearch()" style="background:var(--blue); color:white; border:none; padding:10px 15px; border-radius:8px;">සොයන්න</button>
+                <button onclick="manualSearch()" style="background:var(--blue); color:white; border:none; padding:10px 15px; border-radius:8px; cursor:pointer;">සොයන්න</button>
             </div>
-            <div id="searchStatus" style="font-size:11px; margin-top:8px; text-align:center; color: var(--blue);">නගරය ඇතුළත් කර බොත්තම ඔබන්න.</div>
+            <div id="searchStatus" style="font-size:12px; margin-top:8px; text-align:center; color: var(--blue);">නගරය ඇතුළත් කර සෙවුම් බොත්තම ඔබන්න.</div>
         </div>
         <div id="searchResults"></div>
     </div>
@@ -75,56 +79,54 @@
 
 <div id="spamPage" class="screen">
     <header>
-        <button onclick="showPage('homePage')" style="border:none; background:none; font-size:20px;">🏠</button>
+        <button onclick="showPage('homePage')" style="border:none; background:none; font-size:24px; cursor:pointer;">🏠</button>
         <b>අංක වාර්තා කිරීම</b>
-        <div style="width:30px;"></div>
+        <div style="width:34px;"></div>
     </header>
     <div class="container">
         <div class="card">
             <input type="text" class="input-box" style="margin:0;" placeholder="🔍 ලැයිස්තුවේ ඇති අංකයක් සොයන්න..." oninput="searchNumbers(this.value)">
         </div>
-
         <div class="card">
-            <b>+ අලුත් අංකයක් එක් කරන්න</b>
+            <b style="color:var(--primary);">+ අලුත් අංකයක් එක් කරන්න</b>
             <input type="text" id="reportNum" class="input-box" placeholder="දුරකථන අංකය (07XXXXXXXX)">
-            <input type="text" id="reportLoc" class="input-box" placeholder="සිදුවූ ස්ථානය (Location)">
+            <input type="text" id="reportLoc" class="input-box" placeholder="ස්ථානය (නගරය)">
             <p style="font-size:12px; margin-top:10px; font-weight:bold;">හේතුව තෝරන්න:</p>
             <div id="reasonsContainer"></div>
             <button class="hero-btn btn-red" style="width:100%; margin:15px 0 0 0;" onclick="submitReport()">වාර්තා කරන්න</button>
         </div>
-
         <div class="card">
             <b>🚫 අවහිර කළ අංක ලැයිස්තුව</b>
-            <p style="font-size:10px; color:red;">*දෙවරකට වඩා වාර්තා වූ අංක මෙහි පෙන්වයි.</p>
-            <div id="publicListView" style="margin-top:10px;"></div>
+            <p style="font-size:11px; color:#d32f2f;">*දෙවරකට වඩා වාර්තා වූ අංක පමණක් මෙහි පෙන්වයි.</p>
+            <div id="publicListView" style="margin-top:10px; overflow-x:auto;"></div>
         </div>
     </div>
 </div>
 
 <div id="adminPage" class="screen">
     <header>
-        <button onclick="showPage('homePage')" style="border:none; background:none; font-size:20px;">🏠</button>
-        <b>Admin පාලක මැදිරිය</b>
-        <div style="width:30px;"></div>
+        <button onclick="showPage('homePage')" style="border:none; background:none; font-size:24px; cursor:pointer;">🏠</button>
+        <b>Admin පාලක පුවරුව</b>
+        <div style="width:34px;"></div>
     </header>
     <div class="container">
         <div class="card">
-            <b>හේතු කළමනාකරණය (Manage Reasons)</b>
+            <b>හේතු කළමනාකරණය</b>
             <div style="display:flex; gap:5px; margin-top:10px;">
                 <input type="text" id="newReasonInp" class="input-box" style="margin:0;" placeholder="අලුත් හේතුවක්...">
-                <button onclick="addReason()" style="background:green; color:white; border:none; padding:10px 15px; border-radius:8px;">+</button>
+                <button onclick="addReason()" style="background:green; color:white; border:none; padding:10px 15px; border-radius:8px; cursor:pointer;">+</button>
             </div>
             <div id="adminReasons" style="margin-top:10px;"></div>
         </div>
         <div class="card">
-            <b>දත්ත පාලනය (Edit/Delete Numbers)</b>
-            <div id="adminNumbersTable" style="overflow-x:auto;"></div>
+            <b>සියලුම වාර්තා (Edit/Delete)</b>
+            <div id="adminNumbersTable" style="overflow-x:auto; margin-top:10px;"></div>
         </div>
     </div>
 </div>
 
 <script>
-// --- Firebase Config ---
+// --- Firebase Config ( pathum11.github.io සඳහා ) ---
 const firebaseConfig = {
   apiKey: "AIzaSyDcSphXDWfoZBGY5xaI4-c3lSnf0eR53RQ",
   authDomain: "slsafe.firebaseapp.com",
@@ -141,13 +143,27 @@ const ADMIN_EMAIL = "www.pathum.log@gmail.com";
 
 let user = null;
 
-// --- Auth Functions ---
+// --- Authentication Logic ---
 function googleLogin() {
     const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).catch(e => alert("Login Error: " + e.message));
+    // GitHub Pages වලදී වඩාත් සාර්ථක Redirect ක්‍රමය භාවිතා කරයි
+    auth.signInWithRedirect(provider);
 }
 
 function logout() { auth.signOut(); location.reload(); }
+
+// Redirect වී පැමිණි පසු ප්‍රතිඵලය ලබා ගැනීම
+auth.getRedirectResult().then((result) => {
+    if (result && result.user) {
+        console.log("Logged in:", result.user.displayName);
+    }
+}).catch((error) => {
+    if(error.code === 'auth/configuration-not-found') {
+        alert("දෝෂය: Firebase Console හි Google Sign-in සක්‍රීය කර නොමැත.");
+    } else {
+        alert("Login Error: " + error.message);
+    }
+});
 
 auth.onAuthStateChanged(u => {
     if (u) {
@@ -164,11 +180,11 @@ auth.onAuthStateChanged(u => {
 function showPage(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen', 'flex-screen'));
     const p = document.getElementById(id);
-    if(id==='homePage' || id==='loginPage') p.classList.add('active-screen', 'flex-screen');
+    if(id==='homePage' || id==='loginPage' || id==='loadingPage') p.classList.add('active-screen', 'flex-screen');
     else p.classList.add('active-screen');
 }
 
-// --- 01. Manual Search Logic ---
+// --- Manual Search ---
 async function manualSearch() {
     const city = document.getElementById('manualCity').value;
     if(!city) return;
@@ -177,15 +193,14 @@ async function manualSearch() {
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${city}&countrycodes=lk&limit=1`);
         const data = await res.json();
         if(data.length > 0) {
-            document.getElementById('searchStatus').innerText = "📍 ස්ථානය: " + data[0].display_name;
-            // මෙහිදී පෙර සකස් කළ startSearch ශ්‍රිතය කැඳවිය හැක (lat: data[0].lat, lon: data[0].lon)
+            document.getElementById('searchStatus').innerText = "📍 ස්ථානය හඳුනාගත්තා: " + data[0].display_name;
         } else {
             document.getElementById('searchStatus').innerText = "නගරය හමු නොවීය.";
         }
-    } catch(e) { alert("Error!"); }
+    } catch(e) { alert("සෙවීමේ දෝෂයකි!"); }
 }
 
-// --- Data Sync & Logic ---
+// --- Realtime Data Sync ---
 function syncData() {
     db.ref('reasons').on('value', s => {
         const rList = s.val() ? Object.entries(s.val()) : [];
@@ -223,6 +238,7 @@ function submitReport() {
     }).then(() => {
         alert("වාර්තා කිරීම සාර්ථකයි.");
         document.getElementById('reportNum').value = "";
+        document.getElementById('reportLoc').value = "";
     });
 }
 
@@ -230,17 +246,21 @@ function renderLists(data) {
     const publicDiv = document.getElementById('publicListView');
     const adminDiv = document.getElementById('adminNumbersTable');
     
-    // 02. Double Report Logic
+    // 02. Double Report Logic (අවම වශයෙන් 2 වතාවක් වාර්තා වූ අංක)
     const counts = {};
     Object.values(data).forEach(item => {
         counts[item.number] = (counts[item.number] || 0) + 1;
     });
 
-    let pubHtml = "<table><tr><th>අංකය</th><th>වාර්තා</th></tr>";
-    let admHtml = "<table><tr><th>අංකය</th><th>පරිශීලක</th><th>ක්‍රියා</th></tr>";
+    let pubHtml = "<table><tr><th>අංකය</th><th>වාර්තා ගණන</th></tr>";
+    let admHtml = "<table><tr><th>අංකය</th><th>පරිශීලක</th><th>Action</th></tr>";
 
+    let hasPublic = false;
     for(let n in counts) {
-        if(counts[n] >= 2) pubHtml += `<tr><td>${n}</td><td>${counts[n]} වතාවක්</td></tr>`;
+        if(counts[n] >= 2) {
+            pubHtml += `<tr><td>${n}</td><td>${counts[n]} වතාවක්</td></tr>`;
+            hasPublic = true;
+        }
     }
 
     Object.entries(data).forEach(([id, item]) => {
@@ -248,19 +268,22 @@ function renderLists(data) {
         <td><button class="del-btn" onclick="deleteReport('${id}')">Delete</button></td></tr>`;
     });
 
-    publicDiv.innerHTML = pubHtml + "</table>";
+    publicDiv.innerHTML = hasPublic ? pubHtml + "</table>" : "<p style='text-align:center; font-size:12px; color:grey;'>හඳුනාගත් අංක කිසිවක් නැත.</p>";
     adminDiv.innerHTML = admHtml + "</table>";
 }
 
-// Admin Actions
+// Admin Operations
 function addReason() {
     const val = document.getElementById('newReasonInp').value;
-    if(val) db.ref('reasons').push(val);
+    if(val) {
+        db.ref('reasons').push(val);
+        document.getElementById('newReasonInp').value = "";
+    }
 }
-function removeReason(id) { db.ref('reasons').child(id).remove(); }
-function deleteReport(id) { if(confirm("මෙම වාර්තාව ඉවත් කරන්නද?")) db.ref('reports').child(id).remove(); }
+function removeReason(id) { if(confirm("මෙම හේතුව ඉවත් කරන්නද?")) db.ref('reasons').child(id).remove(); }
+function deleteReport(id) { if(confirm("මෙම වාර්තාව සදහටම ඉවත් කරන්නද?")) db.ref('reports').child(id).remove(); }
 
-// Search Functionality
+// Search Bar Logic
 function searchNumbers(val) {
     const rows = document.querySelectorAll('#publicListView tr');
     rows.forEach((row, i) => {
