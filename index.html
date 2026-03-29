@@ -3,282 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SL Smart Guard & Search</title>
-    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
+    <title>SL Smart System - Fixed</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #d32f2f; --blue: #1976d2; --bg: #f8f9fa; --dark: #1a1c23; }
+        :root { --primary: #d32f2f; --blue: #1976d2; --bg: #f8f9fa; }
         body { font-family: 'Noto Sans Sinhala', sans-serif; background: var(--bg); margin: 0; padding: 0; }
         
+        /* Navigation Screens */
         .screen { display: none; min-height: 100vh; width: 100%; }
-        .active-screen { display: block !important; }
-        .flex-screen { display: flex !important; flex-direction: column; align-items: center; justify-content: center; }
+        .active { display: block !important; }
 
-        /* Login Screen */
-        #loginPage { background: white; text-align: center; }
-        .login-btn { background: white; border: 1px solid #ddd; padding: 12px 25px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: bold; }
-
-        /* General UI */
-        header { background: white; padding: 15px; text-align: center; border-bottom: 4px solid var(--primary); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 1000; }
-        .container { max-width: 500px; margin: auto; padding: 10px; }
-        .card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .input-box { width: 100%; padding: 12px; border: 2px solid #eee; border-radius: 8px; font-family: inherit; margin-top: 8px; box-sizing: border-box; }
-        
-        /* Buttons */
-        .hero-btn { width: 85%; max-width: 350px; padding: 20px; margin: 10px; border-radius: 15px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; color: white; }
+        /* Home Page Styles */
+        #homePage { 
+            display: none; flex-direction: column; align-items: center; justify-content: center; 
+            text-align: center; height: 100vh; background: white; 
+        }
+        #homePage.active { display: flex !important; }
+        .hero-btn { 
+            width: 85%; max-width: 350px; padding: 20px; margin: 12px; border-radius: 15px; 
+            border: none; font-size: 18px; font-weight: bold; cursor: pointer; color: white; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: 0.2s;
+        }
         .btn-red { background: var(--primary); }
         .btn-blue { background: var(--blue); }
+        .hero-btn:active { transform: scale(0.95); }
 
-        /* Spam List Table */
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
-        th, td { border: 1px solid #eee; padding: 10px; text-align: left; }
-        th { background: #f4f4f4; }
-        .delete-btn { color: red; cursor: pointer; font-weight: bold; border: none; background: none; }
+        /* General Header */
+        header { background: white; padding: 15px; text-align: center; border-bottom: 4px solid var(--primary); position: sticky; top: 0; z-index: 1000; display: flex; align-items: center; justify-content: space-between; }
+        .back-btn { background: none; border: none; font-size: 24px; cursor: pointer; }
 
-        .chip { display: inline-block; padding: 6px 12px; background: #eee; border-radius: 20px; font-size: 11px; margin: 3px; cursor: pointer; }
-        .chip.selected { background: var(--primary); color: white; }
+        /* Search & Form Elements */
+        .container { max-width: 500px; margin: auto; padding: 10px; }
+        .card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: relative; }
+        .input-group { display: flex; gap: 8px; }
+        .loc-input { flex: 1; padding: 12px; border: 2px solid #eee; border-radius: 8px; font-family: inherit; font-size: 14px; outline: none; }
+        .auto-btn { background: var(--blue); color: white; border: none; padding: 0 15px; border-radius: 8px; cursor: pointer; }
+        
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 15px; }
+        .grid-item { background: white; border: 1px solid #eee; padding: 10px 2px; border-radius: 12px; text-align: center; cursor: pointer; font-size: 10px; font-weight: bold; }
+
+        /* Results */
+        .result-card { background: white; border-radius: 15px; padding: 15px; margin-bottom: 15px; border-left: 6px solid var(--primary); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .mini-map { height: 180px; width: 100%; border-radius: 10px; margin: 10px 0; border: 1px solid #ddd; }
+        .action-btns { display: flex; gap: 8px; margin-top: 10px; }
+        .btn { flex: 1; text-align: center; padding: 12px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: bold; color: white; }
+        
+        /* Spam Report */
+        .reason-chip { display: inline-block; padding: 6px 12px; background: #f0f0f0; border-radius: 20px; font-size: 11px; margin: 2px; cursor: pointer; }
+        .reason-chip.selected { background: var(--primary); color: white; }
     </style>
 </head>
 <body>
 
-<div id="loginPage" class="screen flex-screen active-screen">
-    <h2>ශ්‍රී ලංකා Smart පද්ධතිය</h2>
-    <p>ඉදිරියට යාමට ඔබගේ Google ගිණුමෙන් ඇතුල් වන්න</p>
-    <button class="login-btn" onclick="googleLogin()">
-        <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" width="20"> Google හරහා සම්බන්ධ වන්න
-    </button>
-</div>
-
-<div id="homePage" class="screen flex-screen">
-    <div id="userInfo" style="margin-bottom: 20px; font-size: 13px;"></div>
-    <button class="hero-btn btn-red" onclick="showPage('searchPage')">🚨 හදිසි සේවා සොයන්න</button>
-    <button class="hero-btn btn-blue" onclick="showPage('spamPage')">📞 අංක වාර්තා කිරීම (Spam Guard)</button>
-    <button id="adminBtn" class="hero-btn" style="background:var(--dark); display:none;" onclick="showPage('adminPage')">⚙️ Admin පාලක මැදිරිය</button>
-    <button onclick="logout()" style="margin-top:20px; border:none; background:none; color:grey;">පද්ධතියෙන් ඉවත් වන්න</button>
+<div id="homePage" class="screen active">
+    <h2 style="color: #333;">ශ්‍රී ලංකා Smart පද්ධතිය</h2>
+    <p style="color: #666; margin-bottom: 30px;">අවශ්‍ය සේවාව තෝරන්න</p>
+    <button class="hero-btn btn-red" onclick="navTo('searchPage')">🚨 හදිසි සේවා සොයන්න</button>
+    <button class="hero-btn btn-blue" onclick="navTo('spamPage')">📞 අංක වාර්තා කරන්න</button>
 </div>
 
 <div id="searchPage" class="screen">
     <header>
-        <button onclick="showPage('homePage')" style="border:none; background:none; font-size:20px;">🏠</button>
-        <b>SMART සෙවුම</b>
+        <button class="back-btn" onclick="navTo('homePage')">🏠</button>
+        <b style="color:var(--primary)">SMART සෙවුම</b>
         <div style="width:30px;"></div>
     </header>
     <div class="container">
         <div class="card">
-            <div style="display:flex; gap:8px;">
-                <input type="text" id="manualCity" class="input-box" style="margin:0;" placeholder="නගරය ඇතුළත් කරන්න (Manual Search)...">
-                <button onclick="manualSearch()" style="background:var(--blue); color:white; border:none; padding:10px; border-radius:8px;">සොයන්න</button>
+            <div class="input-group">
+                <input type="text" id="locInput" class="loc-input" placeholder="නගරය ටයිප් කරන්න..." oninput="handleLocInput(this.value)">
+                <button class="auto-btn" onclick="initAutoLocation()">📍</button>
             </div>
-            <div id="searchStatus" style="font-size:11px; margin-top:8px; text-align:center;">නගරය ටයිප් කර බොත්තම ඔබන්න.</div>
+            <div id="statusTxt" style="font-size:11px; color:var(--blue); text-align:center; margin-top:8px; font-weight:bold;">ස්ථානය තෝරන්න...</div>
         </div>
-        <div id="searchResults"></div>
+        <div class="grid">
+            <div onclick="startSearch('fuel', 'පිරවුම්හල')" class="grid-item">⛽<br>ඉන්ධන</div>
+            <div onclick="startSearch('bank', 'බැංකුව')" class="grid-item">🏦<br>බැංකු</div>
+            <div onclick="startSearch('hospital', 'රෝහල')" class="grid-item">🏥<br>රෝහල්</div>
+            <div onclick="startSearch('police', 'පොලිසිය')" class="grid-item">🚨<br>පොලිසිය</div>
+        </div>
+        <div id="results"></div>
     </div>
 </div>
 
 <div id="spamPage" class="screen">
     <header>
-        <button onclick="showPage('homePage')" style="border:none; background:none; font-size:20px;">🏠</button>
+        <button class="back-btn" onclick="navTo('homePage')">🏠</button>
         <b>අංක වාර්තා කිරීම</b>
         <div style="width:30px;"></div>
     </header>
     <div class="container">
-        <div class="card">
-            <input type="text" id="numSearch" class="input-box" placeholder="🔍 පෙර ඇතුළත් කළ අංකයක් සොයන්න..." oninput="searchInList(this.value)">
+        <div class="card" style="border-top: 5px solid #333;">
+            <b style="font-size: 13px;">🔒 Admin පාලක පුවරුව</b>
+            <button style="width:100%; padding:10px; background:#1a1c23; color:white; border:none; border-radius:8px; margin-top:10px; font-size:11px;">අවහිර කළ අංක කළමනාකරණය</button>
         </div>
-
         <div class="card">
-            <b>+ අලුත් අංකයක් එක් කරන්න</b>
-            <input type="text" id="newNum" class="input-box" placeholder="07XXXXXXXX">
-            <div id="reasonList" style="margin-top:10px;"></div>
-            <button class="hero-btn btn-red" style="width:100%; margin:15px 0 0 0;" onclick="submitNumber()">වාර්තා කරන්න</button>
-        </div>
-
-        <div class="card">
-            <b>🚫 අවහිර කළ අංක (Block List)</b>
-            <div id="blockListView">පූරණය වෙමින්...</div>
-        </div>
-    </div>
-</div>
-
-<div id="adminPage" class="screen">
-    <header>
-        <button onclick="showPage('homePage')" style="border:none; background:none; font-size:20px;">🏠</button>
-        <b>පාලක මැදිරිය</b>
-        <div style="width:30px;"></div>
-    </header>
-    <div class="container">
-        <div class="card">
-            <b>හේතු කළමනාකරණය (Manage Reasons)</b>
-            <div style="display:flex; gap:5px; margin-top:10px;">
-                <input type="text" id="reasonInp" class="input-box" style="margin:0;" placeholder="අලුත් හේතුවක්...">
-                <button onclick="addReason()" style="background:green; color:white; border:none; padding:10px; border-radius:8px;">+</button>
+            <b style="color:var(--primary);">+ අලුත් අංකයක් ඇතුළත් කරන්න</b>
+            <input type="text" class="loc-input" style="width:100%; margin-top:10px; box-sizing:border-box;" placeholder="දුරකථන අංකය">
+            <div class="reason-grid" style="margin-top:10px;">
+                <div class="reason-chip" onclick="this.classList.toggle('selected')">Spam</div>
+                <div class="reason-chip" onclick="this.classList.toggle('selected')">Scam</div>
+                <div class="reason-chip" onclick="this.classList.toggle('selected')">Harassment</div>
             </div>
-            <div id="adminReasons" style="margin-top:10px;"></div>
-        </div>
-        
-        <div class="card">
-            <b>දත්ත පාලනය (Manage All Numbers)</b>
-            <div id="adminAllNums" style="overflow-x:auto;"></div>
+            <button class="hero-btn btn-red" style="width:100%; margin:15px 0 0 0; padding:15px;">ලැයිස්තුවට එක් කරන්න</button>
         </div>
     </div>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-// --- Firebase Configuration (ඔබගේ Firebase කරුණු මෙතැනට එක් කරන්න) ---
-const firebaseConfig = {
-    apiKey: "AIzaSy...", 
-    authDomain: "your-app.firebaseapp.com",
-    databaseURL: "https://your-app.firebaseio.com",
-    projectId: "your-app",
-    storageBucket: "your-app.appspot.com",
-    messagingSenderId: "...",
-    appId: "..."
-};
-firebase.initializeApp(firebaseConfig);
+    var uLat = null, uLon = null;
 
-const auth = firebase.auth();
-const db = firebase.database();
-const ADMIN_EMAIL = "www.pathum.log@gmail.com";
-
-let currentUser = null;
-
-// --- 03. Google Auth & Sign In ---
-function googleLogin() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider);
-}
-
-auth.onAuthStateChanged(user => {
-    if (user) {
-        currentUser = user;
-        document.getElementById('userInfo').innerText = `පරිශීලක: ${user.displayName}`;
-        showPage('homePage');
-        if(user.email === ADMIN_EMAIL) document.getElementById('adminBtn').style.display = 'block';
-        loadData();
-    } else {
-        showPage('loginPage');
-    }
-});
-
-function logout() { auth.signOut(); }
-
-// --- Navigation ---
-function showPage(id) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen', 'flex-screen'));
-    const p = document.getElementById(id);
-    if(id === 'homePage' || id === 'loginPage') p.classList.add('flex-screen', 'active-screen');
-    else p.classList.add('active-screen');
-}
-
-// --- 01. Manual Search Fix ---
-async function manualSearch() {
-    const city = document.getElementById('manualCity').value;
-    if(!city) return alert("කරුණාකර නගරයක් ඇතුළත් කරන්න.");
-    
-    document.getElementById('searchStatus').innerText = "සොයමින්...";
-    try {
-        const geo = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${city}&countrycodes=lk&limit=1`);
-        const data = await geo.json();
-        if(data.length > 0) {
-            // මෙහිදී ඔබගේ පැරණි startSearch() ශ්‍රිතය lat/lon යොදා කැඳවිය හැක.
-            document.getElementById('searchStatus').innerText = `📍 සොයාගත්තා: ${data[0].display_name}`;
-        } else {
-            document.getElementById('searchStatus').innerText = "නගරය හමු නොවීය.";
-        }
-    } catch(e) { alert("දෝෂයකි!"); }
-}
-
-// --- 04 & 05. Spam System Logic ---
-let allNumbers = {};
-let reasons = ["Spam", "Scam", "Fake"];
-
-function loadData() {
-    db.ref('reasons').on('value', s => {
-        reasons = s.val() ? Object.values(s.val()) : ["Spam", "Scam"];
-        renderReasons();
-    });
-    
-    db.ref('reports').on('value', s => {
-        allNumbers = s.val() || {};
-        renderBlockList();
-    });
-}
-
-function renderReasons() {
-    const container = document.getElementById('reasonList');
-    const adminCont = document.getElementById('adminReasons');
-    container.innerHTML = ""; adminCont.innerHTML = "";
-    reasons.forEach(r => {
-        container.innerHTML += `<div class="chip" onclick="this.classList.toggle('selected')">${r}</div>`;
-        adminCont.innerHTML += `<div class="chip">${r} <span onclick="deleteReason('${r}')" style="color:red; margin-left:5px;">×</span></div>`;
-    });
-}
-
-function submitNumber() {
-    const num = document.getElementById('newNum').value;
-    if(!num || num.length < 10) return alert("නිවැරදි අංකයක් ඇතුළත් කරන්න.");
-    
-    const selected = Array.from(document.querySelectorAll('#reasonList .selected')).map(c => c.innerText);
-    
-    // 2. එකම අංකය දෙවරකට වඩා වාර්තා වූ විට පමණක් ලැයිස්තුවට එක් කිරීමේ logic එක
-    const existing = Object.values(allNumbers).filter(x => x.number === num).length;
-    
-    db.ref('reports').push({
-        number: num,
-        reasons: selected,
-        reportedBy: currentUser.email,
-        timestamp: Date.now()
-    });
-    alert("වාර්තා කිරීම සාර්ථකයි.");
-}
-
-function renderBlockList() {
-    const view = document.getElementById('blockListView');
-    const adminView = document.getElementById('adminAllNums');
-    
-    // 2. අවම වශයෙන් 2 වතාවක් වාර්තා වූ අංක පෙරීම
-    const counts = {};
-    Object.values(allNumbers).forEach(x => counts[x.number] = (counts[x.number] || 0) + 1);
-    
-    let html = `<table><tr><th>අංකය</th><th>වාර්තා ගණන</th></tr>`;
-    for(let n in counts) {
-        if(counts[n] >= 2) html += `<tr><td>${n}</td><td>${counts[n]} වතාවක්</td></tr>`;
-    }
-    view.innerHTML = html + `</table>`;
-    
-    // Admin Table (සියල්ල වෙනස් කිරීමට/මැකීමට)
-    if(currentUser.email === ADMIN_EMAIL) {
-        let adminHtml = `<table><tr><th>අංකය</th><th>ක්‍රියා</th></tr>`;
-        Object.keys(allNumbers).forEach(key => {
-            adminHtml += `<tr><td>${allNumbers[key].number}</td>
-            <td><button class="delete-btn" onclick="deleteEntry('${key}')">ඉවත් කරන්න</button></td></tr>`;
+    // පිටු මාරු කිරීමේ නිවැරදි ක්‍රමය
+    function navTo(pageId) {
+        // සියලුම පිටු සඟවන්න
+        document.querySelectorAll('.screen').forEach(s => {
+            s.classList.remove('active');
         });
-        adminView.innerHTML = adminHtml + `</table>`;
+        // අවශ්‍ය පිටුව පමණක් පෙන්වන්න
+        const target = document.getElementById(pageId);
+        target.classList.add('active');
+        
+        // සෙවුම් පිටුවට යන විට GPS ස්වයංක්‍රීයව පණගන්වන්න
+        if(pageId === 'searchPage') initAutoLocation();
     }
-}
 
-function deleteEntry(key) { if(confirm("මෙය ඉවත් කරන්නද?")) db.ref('reports').child(key).remove(); }
-function addReason() {
-    const r = document.getElementById('reasonInp').value;
-    if(r) db.ref('reasons').push(r);
-}
-function deleteReason(val) {
-    db.ref('reasons').orderByValue().equalTo(val).once('value', s => {
-        s.forEach(child => child.ref.remove());
-    });
-}
+    function initAutoLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(p => {
+                uLat = p.coords.latitude; uLon = p.coords.longitude;
+                document.getElementById('statusTxt').innerText = "📍 වත්මන් ස්ථානය හඳුනාගත්තා";
+            }, () => {
+                document.getElementById('statusTxt').innerHTML = "<span style='color:red'>📍 ස්ථානය ටයිප් කරන්න.</span>";
+            });
+        }
+    }
 
-// 04. Search in Block List
-function searchInList(val) {
-    const rows = document.querySelectorAll('#blockListView tr');
-    rows.forEach((r, i) => {
-        if(i === 0) return;
-        r.style.display = r.innerText.includes(val) ? "" : "none";
-    });
-}
+    async function startSearch(type, siName) {
+        if (!uLat) return alert("කරුණාකර ස්ථානය ලබාගන්නා තෙක් රැඳී සිටින්න.");
+        const resDiv = document.getElementById('results');
+        resDiv.innerHTML = `<div style="text-align:center; padding:20px;">${siName} සොයමින්...</div>`;
+
+        try {
+            const url = `https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=${type}](around:10000,${uLat},${uLon});out;`;
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            resDiv.innerHTML = data.elements.length === 0 ? "කිසිවක් හමු නොවීය." : "";
+            data.elements.slice(0, 10).forEach(item => {
+                const mid = `map-${item.id}`;
+                resDiv.innerHTML += `
+                    <div class="result-card">
+                        <h4>${item.tags.name || siName}</h4>
+                        <div id="${mid}" class="mini-map"></div>
+                        <div class="action-btns">
+                            <a href="http://googleusercontent.com/maps.google.com/4{item.lat},${item.lon}" target="_blank" class="btn" style="background:#2e7d32">සිතියම බලන්න</a>
+                        </div>
+                    </div>`;
+                setTimeout(() => {
+                    var map = L.map(mid, {zoomControl:false}).setView([item.lat, item.lon], 15);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                    L.marker([item.lat, item.lon]).addTo(map);
+                }, 300);
+            });
+        } catch (e) { resDiv.innerHTML = "දෝෂයකි!"; }
+    }
 </script>
 </body>
 </html>
