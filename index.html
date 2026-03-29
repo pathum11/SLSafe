@@ -3,138 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SL Smart Search - Bank Filter</title>
+    <title>SL Smart Search AI - 2026 Edition</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #d32f2f; --blue: #1976d2; --bg: #f0f2f5; --success: #2e7d32; }
-        body { font-family: 'Noto Sans Sinhala', sans-serif; background: var(--bg); margin: 0; padding-bottom: 50px; }
+        :root { --primary: #d32f2f; --blue: #1976d2; --bg: #f0f2f5; --success: #2e7d32; --purple: #7b1fa2; }
+        body { font-family: 'Noto Sans Sinhala', sans-serif; background: var(--bg); margin: 0; padding-bottom: 50px; color: #333; }
         header { background: white; padding: 15px; text-align: center; border-bottom: 4px solid var(--primary); position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .container { max-width: 500px; margin: auto; padding: 10px; }
         
-        /* Search Box styling */
-        .search-container { background: white; padding: 10px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: none; }
-        .search-input { width: 90%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; font-size: 14px; outline: none; }
+        /* Location Box */
+        .location-box { background: #e3f2fd; padding: 12px; border-radius: 12px; font-size: 13px; color: #1565c0; margin-bottom: 15px; text-align: center; font-weight: bold; border: 1px solid #bbdefb; line-height: 1.4; }
         
-        .location-box { background: #e3f2fd; padding: 10px; border-radius: 10px; font-size: 13px; color: #1565c0; margin-bottom: 15px; text-align: center; font-weight: bold; border: 1px solid #bbdefb; }
+        /* Search Bar for Banks/ATM */
+        .search-container { background: white; padding: 12px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); display: none; animation: slideDown 0.3s ease; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .search-input { width: 100%; padding: 12px; border: 2px solid #eee; border-radius: 8px; font-family: inherit; font-size: 14px; outline: none; box-sizing: border-box; transition: 0.3s; }
+        .search-input:focus { border-color: var(--blue); }
+
+        /* Icon Grid */
         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 15px; }
-        .grid-item { background: white; border: 1px solid #eee; padding: 10px 2px; border-radius: 12px; text-align: center; cursor: pointer; font-size: 10px; font-weight: bold; transition: 0.2s; }
-        .grid-item:active { background: #fff5f5; transform: scale(0.92); }
-        .icon { font-size: 20px; display: block; margin-bottom: 5px; }
+        .grid-item { background: white; border: 1px solid #eee; padding: 12px 2px; border-radius: 15px; text-align: center; cursor: pointer; font-size: 10px; font-weight: bold; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .grid-item:active { background: #fff5f5; transform: scale(0.92); border-color: var(--primary); }
+        .icon { font-size: 22px; display: block; margin-bottom: 6px; }
+
+        /* Result Cards */
+        .result-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 20px; border-left: 6px solid var(--primary); box-shadow: 0 4px 15px rgba(0,0,0,0.06); position: relative; }
+        .result-card h4 { margin: 0 0 10px 0; font-size: 16px; color: #1a1a1a; display: flex; align-items: center; justify-content: space-between; }
+        .ai-sparkle { font-size: 12px; color: var(--purple); font-weight: normal; }
+
+        .mini-map { height: 180px; width: 100%; border-radius: 10px; margin: 12px 0; border: 1px solid #ddd; z-index: 1; }
         
-        .result-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 6px solid var(--primary); box-shadow: 0 3px 8px rgba(0,0,0,0.05); }
-        .mini-map { height: 160px; width: 100%; border-radius: 8px; margin: 10px 0; border: 1px solid #ddd; }
-        .badge { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; color: white; display: inline-block; margin-right: 5px; }
-        .dist-badge { background: #2e7d32; }
+        .badge-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+        .badge { padding: 5px 10px; border-radius: 8px; font-size: 11px; font-weight: bold; color: white; display: flex; align-items: center; gap: 4px; }
+        .dist-badge { background: var(--success); }
         .time-badge { background: #e65100; }
-        .action-btns { display: flex; gap: 8px; }
-        .btn { flex: 1; text-align: center; padding: 10px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: bold; color: white; }
+        
+        .action-btns { display: flex; gap: 10px; }
+        .btn { flex: 1; text-align: center; padding: 12px; border-radius: 10px; text-decoration: none; font-size: 13px; font-weight: bold; color: white; transition: 0.2s; border: none; cursor: pointer; }
         .call-btn { background: var(--blue); }
         .dir-btn { background: var(--success); }
-        .loading { text-align: center; padding: 20px; color: #666; font-style: italic; }
-    </style>
-</head>
-<body onload="initLocation()">
+        .btn:active { opacity: 0.8; transform: translateY(2px); }
 
-<header><b style="color:var(--primary)">ශ්‍රී ලංකා SMART සෙවුම</b></header>
-
-<div class="container">
-    <div id="locDisplay" class="location-box">ස්ථානය ලබාගනිමින්...</div>
-
-    <div id="bankSearch" class="search-container">
-        <input type="text" id="bankInput" class="search-input" placeholder="බැංකුවේ නම ටයිප් කරන්න (BOC, Sampath...)" onkeyup="filterBanks()">
-    </div>
-    
-    <div class="grid">
-        <div class="grid-item" onclick="toggleSearch('bank', 'බැංකුව')"><span class="icon">🏦</span>බැංකු</div>
-        <div class="grid-item" onclick="toggleSearch('atm', 'ATM')"><span class="icon">🏧</span>ATM</div>
-        <div class="grid-item" onclick="startSearch('fuel', 'පිරවුම්හල')"><span class="icon">⛽</span>ඉන්ධන</div>
-        <div class="grid-item" onclick="startSearch('police', 'පොලිසිය')"><span class="icon">🚨</span>පොලිසිය</div>
-        <div class="grid-item" onclick="startSearch('hospital', 'රෝහල')"><span class="icon">🏥</span>රෝහල්</div>
-        <div class="grid-item" onclick="startSearch('pharmacy', 'ඔසුසල')"><span class="icon">💊</span>ඔසුසල්</div>
-        <div class="grid-item" onclick="startSearch('car_repair', 'සර්විස්')"><span class="icon">🛠️</span>සර්විස්</div>
-        <div class="grid-item" onclick="startSearch('toilets', 'වැසිකිළි')"><span class="icon">🚻</span>වැසිකිළි</div>
-    </div>
-    
-    <div id="results"></div>
-</div>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-    var uLat, uLon, allResults = [];
-    const GEMINI_API_KEY = "AIzaSyBphi5HUEHNCKV1zr4h5ZI8aKSKAByHPpU";
-
-    function initLocation() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(p => {
-                uLat = p.coords.latitude; uLon = p.coords.longitude;
-                document.getElementById('locDisplay').innerText = "📍 ස්ථානය හඳුනාගත්තා";
-            });
-        }
-    }
-
-    function toggleSearch(type, name) {
-        document.getElementById('bankSearch').style.display = 'block';
-        document.getElementById('bankInput').focus();
-        startSearch(type, name);
-    }
-
-    async function startSearch(type, siName) {
-        if (!uLat) return alert("Location ලබාගන්නා තෙක් සිටින්න.");
-        if (type !== 'bank' && type !== 'atm') document.getElementById('bankSearch').style.display = 'none';
-        
-        const resDiv = document.getElementById('results');
-        resDiv.innerHTML = `<div class="loading">10km ඇතුළත ${siName} සොයමින්...</div>`;
-
-        let queryTag = `amenity=${type}`;
-        try {
-            const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];node[${queryTag}](around:10000,${uLat},${uLon});out;`;
-            const response = await fetch(overpassUrl);
-            const data = await response.json();
-            
-            allResults = [];
-            for (let item of data.elements) {
-                // සැබෑ මාර්ග දුර ගණනය (OSRM)
-                const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${uLon},${uLat};${item.lon},${item.lat}?overview=full&geometries=geojson`;
-                const osrmRes = await fetch(osrmUrl);
-                const osrmData = await osrmRes.json();
-                
-                if (osrmData.routes && osrmData.routes[0]) {
-                    const r = osrmData.routes[0];
-                    allResults.push({
-                        id: item.id,
-                        name: item.tags.name || siName,
-                        phone: item.tags.phone || item.tags["contact:phone"] || "",
-                        distVal: r.distance / 1000,
-                        distTxt: (r.distance / 1000).toFixed(2) + " KM",
-                        timeTxt: Math.round(r.duration / 60) + " min",
-                        geom: r.geometry,
-                        lat: item.lat, lon: item.lon
-                    });
-                }
-            }
-            allResults.sort((a, b) => a.distVal - b.distVal);
-            renderResults(allResults);
-        } catch (e) { resDiv.innerHTML = "දෝෂයකි!"; }
-    }
-
-    function filterBanks() {
-        const term = document.getElementById('bankInput').value.toLowerCase();
-        const filtered = allResults.filter(r => r.name.toLowerCase().includes(term));
-        renderResults(filtered);
-    }
-
-    function renderResults(list) {
-        const resDiv = document.getElementById('results');
-        resDiv.innerHTML = `<p style="font-size:11px; text-align:center;">ස්ථාන ${list.length} ක් හමු විය.</p>`;
-        
-        list.forEach(res => {
-            const mapId = `map-${res.id}`;
-            resDiv.innerHTML += `
-                <div class="result-card">
-                    <h4 id="title-${res.id}">${res.name}</h4>
-                    <span class="badge dist-badge">🛣️ ${res.distTxt}</span>
-                    <span class="badge time-badge">⏱️ ${res.timeTxt}</span>
-                    <div id="${mapId}" class="mini-map"></div>
-                    <div class="action-btns">
-                        <a href="tel:${res.phone}" class="btn call-btn" ${!res.phone ? 'style="opacity:0.3;pointer-events:none"'
+        .loading { text-align: center; padding: 30px; color: #666; font-style: italic; font-size: 14px; }
+        .no-results { text-align: center; padding: 20px;
