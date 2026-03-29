@@ -3,25 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SL Smart System - Fixed</title>
+    <title>SL Smart System - Stable</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #d32f2f; --blue: #1976d2; --bg: #f8f9fa; }
         body { font-family: 'Noto Sans Sinhala', sans-serif; background: var(--bg); margin: 0; padding: 0; }
         
-        /* Navigation Screens */
+        /* Navigation Control */
         .screen { display: none; min-height: 100vh; width: 100%; }
-        .active { display: block !important; }
+        .active-screen { display: block !important; }
+        .flex-screen { display: flex !important; flex-direction: column; align-items: center; justify-content: center; }
 
-        /* Home Page Styles */
-        #homePage { 
-            display: none; flex-direction: column; align-items: center; justify-content: center; 
-            text-align: center; height: 100vh; background: white; 
-        }
-        #homePage.active { display: flex !important; }
+        /* Home Page */
+        #homePage { text-align: center; background: white; }
         .hero-btn { 
-            width: 85%; max-width: 350px; padding: 20px; margin: 12px; border-radius: 15px; 
+            width: 85%; max-width: 350px; padding: 22px; margin: 12px; border-radius: 15px; 
             border: none; font-size: 18px; font-weight: bold; cursor: pointer; color: white; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: 0.2s;
         }
@@ -29,51 +26,47 @@
         .btn-blue { background: var(--blue); }
         .hero-btn:active { transform: scale(0.95); }
 
-        /* General Header */
-        header { background: white; padding: 15px; text-align: center; border-bottom: 4px solid var(--primary); position: sticky; top: 0; z-index: 1000; display: flex; align-items: center; justify-content: space-between; }
+        /* Headers */
+        header { background: white; padding: 15px; text-align: center; border-bottom: 4px solid var(--primary); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 1000; }
         .back-btn { background: none; border: none; font-size: 24px; cursor: pointer; }
 
-        /* Search & Form Elements */
+        /* Search & Common UI */
         .container { max-width: 500px; margin: auto; padding: 10px; }
-        .card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: relative; }
-        .input-group { display: flex; gap: 8px; }
-        .loc-input { flex: 1; padding: 12px; border: 2px solid #eee; border-radius: 8px; font-family: inherit; font-size: 14px; outline: none; }
-        .auto-btn { background: var(--blue); color: white; border: none; padding: 0 15px; border-radius: 8px; cursor: pointer; }
+        .card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .input-box { width: 100%; padding: 12px; border: 2px solid #eee; border-radius: 8px; font-family: inherit; margin-top: 8px; box-sizing: border-box; }
         
         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 15px; }
-        .grid-item { background: white; border: 1px solid #eee; padding: 10px 2px; border-radius: 12px; text-align: center; cursor: pointer; font-size: 10px; font-weight: bold; }
+        .grid-item { background: white; border: 1px solid #eee; padding: 10px 2px; border-radius: 10px; text-align: center; cursor: pointer; font-size: 10px; font-weight: bold; }
 
-        /* Results */
         .result-card { background: white; border-radius: 15px; padding: 15px; margin-bottom: 15px; border-left: 6px solid var(--primary); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
         .mini-map { height: 180px; width: 100%; border-radius: 10px; margin: 10px 0; border: 1px solid #ddd; }
-        .action-btns { display: flex; gap: 8px; margin-top: 10px; }
-        .btn { flex: 1; text-align: center; padding: 12px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: bold; color: white; }
-        
-        /* Spam Report */
-        .reason-chip { display: inline-block; padding: 6px 12px; background: #f0f0f0; border-radius: 20px; font-size: 11px; margin: 2px; cursor: pointer; }
-        .reason-chip.selected { background: var(--primary); color: white; }
+        .badge { padding: 4px 8px; background: #2e7d32; color: white; border-radius: 5px; font-size: 11px; }
+
+        /* Spam Page Chips */
+        .chip { display: inline-block; padding: 6px 12px; background: #f0f0f0; border-radius: 20px; font-size: 11px; margin: 4px; cursor: pointer; border: 1px solid #ddd; }
+        .chip.selected { background: var(--primary); color: white; border-color: var(--primary); }
     </style>
 </head>
 <body>
 
-<div id="homePage" class="screen active">
-    <h2 style="color: #333;">ශ්‍රී ලංකා Smart පද්ධතිය</h2>
-    <p style="color: #666; margin-bottom: 30px;">අවශ්‍ය සේවාව තෝරන්න</p>
-    <button class="hero-btn btn-red" onclick="navTo('searchPage')">🚨 හදිසි සේවා සොයන්න</button>
-    <button class="hero-btn btn-blue" onclick="navTo('spamPage')">📞 අංක වාර්තා කරන්න</button>
+<div id="homePage" class="screen flex-screen active-screen">
+    <h1 style="color: #333; margin-bottom: 5px;">සාදරයෙන් පිළිගනිමු</h1>
+    <p style="color: #666; margin-bottom: 35px;">ශ්‍රී ලංකා Smart පද්ධතිය</p>
+    <button class="hero-btn btn-red" onclick="showPage('searchPage')">🚨 හදිසි සේවා සොයන්න</button>
+    <button class="hero-btn btn-blue" onclick="showPage('spamPage')">📞 අංක වාර්තා කරන්න</button>
 </div>
 
 <div id="searchPage" class="screen">
     <header>
-        <button class="back-btn" onclick="navTo('homePage')">🏠</button>
+        <button class="back-btn" onclick="showPage('homePage')">🏠</button>
         <b style="color:var(--primary)">SMART සෙවුම</b>
         <div style="width:30px;"></div>
     </header>
     <div class="container">
         <div class="card">
-            <div class="input-group">
-                <input type="text" id="locInput" class="loc-input" placeholder="නගරය ටයිප් කරන්න..." oninput="handleLocInput(this.value)">
-                <button class="auto-btn" onclick="initAutoLocation()">📍</button>
+            <div style="display:flex; gap:8px;">
+                <input type="text" id="locInput" class="input-box" style="margin:0;" placeholder="නගරය ටයිප් කරන්න..." oninput="handleLocInput(this.value)">
+                <button onclick="initAutoLocation()" style="background:var(--blue); color:white; border:none; padding:10px 15px; border-radius:8px;">📍</button>
             </div>
             <div id="statusTxt" style="font-size:11px; color:var(--blue); text-align:center; margin-top:8px; font-weight:bold;">ස්ථානය තෝරන්න...</div>
         </div>
@@ -89,7 +82,7 @@
 
 <div id="spamPage" class="screen">
     <header>
-        <button class="back-btn" onclick="navTo('homePage')">🏠</button>
+        <button class="back-btn" onclick="showPage('homePage')">🏠</button>
         <b>අංක වාර්තා කිරීම</b>
         <div style="width:30px;"></div>
     </header>
@@ -100,13 +93,14 @@
         </div>
         <div class="card">
             <b style="color:var(--primary);">+ අලුත් අංකයක් ඇතුළත් කරන්න</b>
-            <input type="text" class="loc-input" style="width:100%; margin-top:10px; box-sizing:border-box;" placeholder="දුරකථන අංකය">
-            <div class="reason-grid" style="margin-top:10px;">
-                <div class="reason-chip" onclick="this.classList.toggle('selected')">Spam</div>
-                <div class="reason-chip" onclick="this.classList.toggle('selected')">Scam</div>
-                <div class="reason-chip" onclick="this.classList.toggle('selected')">Harassment</div>
+            <input type="text" class="input-box" placeholder="දුරකථන අංකය (07XXXXXXXX)">
+            <input type="text" class="input-box" placeholder="ගැටලුව වූ ස්ථානය...">
+            <div style="margin-top:10px;">
+                <div class="chip" onclick="this.classList.toggle('selected')">Spam</div>
+                <div class="chip" onclick="this.classList.toggle('selected')">Scam</div>
+                <div class="chip" onclick="this.classList.toggle('selected')">Harassment</div>
             </div>
-            <button class="hero-btn btn-red" style="width:100%; margin:15px 0 0 0; padding:15px;">ලැයිස්තුවට එක් කරන්න</button>
+            <button class="hero-btn btn-red" style="width:100%; margin:15px 0 0 0; padding:15px; border-radius:10px;">ලැයිස්තුවට එක් කරන්න</button>
         </div>
     </div>
 </div>
@@ -115,25 +109,31 @@
 <script>
     var uLat = null, uLon = null;
 
-    // පිටු මාරු කිරීමේ නිවැරදි ක්‍රමය
-    function navTo(pageId) {
+    // පිටු පෙන්වීමේ ශ්‍රිතය (Fixed Navigation)
+    function showPage(pageId) {
         // සියලුම පිටු සඟවන්න
-        document.querySelectorAll('.screen').forEach(s => {
-            s.classList.remove('active');
+        const screens = document.querySelectorAll('.screen');
+        screens.forEach(s => {
+            s.classList.remove('active-screen', 'flex-screen');
         });
-        // අවශ්‍ය පිටුව පමණක් පෙන්වන්න
-        const target = document.getElementById(pageId);
-        target.classList.add('active');
-        
-        // සෙවුම් පිටුවට යන විට GPS ස්වයංක්‍රීයව පණගන්වන්න
-        if(pageId === 'searchPage') initAutoLocation();
+
+        // අදාළ පිටුව පමණක් පෙන්වන්න
+        const activePage = document.getElementById(pageId);
+        if (pageId === 'homePage') {
+            activePage.classList.add('flex-screen', 'active-screen');
+        } else {
+            activePage.classList.add('active-screen');
+        }
+
+        // සෙවුම් පිටුවේදී GPS වැඩ කරවන්න
+        if (pageId === 'searchPage') initAutoLocation();
     }
 
     function initAutoLocation() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(p => {
                 uLat = p.coords.latitude; uLon = p.coords.longitude;
-                document.getElementById('statusTxt').innerText = "📍 වත්මන් ස්ථානය හඳුනාගත්තා";
+                document.getElementById('statusTxt').innerText = "📍 ස්ථානය හඳුනාගත්තා";
             }, () => {
                 document.getElementById('statusTxt').innerHTML = "<span style='color:red'>📍 ස්ථානය ටයිප් කරන්න.</span>";
             });
@@ -143,7 +143,7 @@
     async function startSearch(type, siName) {
         if (!uLat) return alert("කරුණාකර ස්ථානය ලබාගන්නා තෙක් රැඳී සිටින්න.");
         const resDiv = document.getElementById('results');
-        resDiv.innerHTML = `<div style="text-align:center; padding:20px;">${siName} සොයමින්...</div>`;
+        resDiv.innerHTML = `<div style="text-align:center; padding:20px;">සොයමින්...</div>`;
 
         try {
             const url = `https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=${type}](around:10000,${uLat},${uLon});out;`;
@@ -153,13 +153,13 @@
             resDiv.innerHTML = data.elements.length === 0 ? "කිසිවක් හමු නොවීය." : "";
             data.elements.slice(0, 10).forEach(item => {
                 const mid = `map-${item.id}`;
+                const dist = getDistance(uLat, uLon, item.lat, item.lon).toFixed(2);
                 resDiv.innerHTML += `
                     <div class="result-card">
                         <h4>${item.tags.name || siName}</h4>
+                        <span class="badge">🛣️ ${dist} KM දුරින්</span>
                         <div id="${mid}" class="mini-map"></div>
-                        <div class="action-btns">
-                            <a href="http://googleusercontent.com/maps.google.com/4{item.lat},${item.lon}" target="_blank" class="btn" style="background:#2e7d32">සිතියම බලන්න</a>
-                        </div>
+                        <a href="https://www.google.com/maps/dir/?api=1&destination=${item.lat},${item.lon}" target="_blank" style="display:block; text-align:center; background:#2e7d32; color:white; padding:10px; border-radius:8px; text-decoration:none; font-size:12px; font-weight:bold;">මාර්ගය පෙන්වන්න</a>
                     </div>`;
                 setTimeout(() => {
                     var map = L.map(mid, {zoomControl:false}).setView([item.lat, item.lon], 15);
@@ -168,6 +168,13 @@
                 }, 300);
             });
         } catch (e) { resDiv.innerHTML = "දෝෂයකි!"; }
+    }
+
+    function getDistance(l1, n1, l2, n2) {
+        let R = 6371;
+        let dL = (l2-l1)*Math.PI/180, dN = (n2-n1)*Math.PI/180;
+        let a = Math.sin(dL/2)**2 + Math.cos(l1*Math.PI/180)*Math.cos(l2*Math.PI/180)*Math.sin(dN/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 </script>
 </body>
