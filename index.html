@@ -4,97 +4,257 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SL Emergency & Blocked Numbers</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #d32f2f; --secondary: #2c3e50; --light: #f4f4f4; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: var(--light); }
-        header { background: var(--primary); color: white; padding: 1rem; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        .container { padding: 20px; max-width: 600px; margin: auto; }
-        .card { background: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        h3 { margin-top: 0; color: var(--secondary); border-bottom: 2px solid var(--primary); padding-bottom: 5px; }
-        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        button { background: var(--primary); color: white; border: none; cursor: pointer; font-weight: bold; }
-        button:hover { opacity: 0.9; }
-        .emergency-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }
-        .emergency-item a { color: var(--primary); font-weight: bold; text-decoration: none; }
-        .list-item { background: #fffde7; padding: 10px; border-left: 5px solid #fbc02d; margin-top: 5px; border-radius: 3px; }
-        .status-online { color: green; font-size: 0.8rem; font-weight: bold; }
+        :root {
+            --primary-red: #d32f2f;
+            --bg-light: #f8f9fa;
+            --card-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Noto Sans Sinhala', sans-serif;
+            background-color: var(--bg-light);
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        /* Header පෙනුම */
+        header {
+            background-color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--primary-red);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .logo-area { display: flex; align-items: center; color: var(--primary-red); font-weight: bold; }
+        .status-badge { background: #e8f5e9; color: #2e7d32; padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+
+        .container { max-width: 500px; margin: auto; padding: 15px; }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--card-shadow);
+        }
+
+        h3 { margin-top: 0; font-size: 18px; color: #333; display: flex; align-items: center; gap: 10px; }
+        
+        /* Search Bar */
+        .search-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .search-container input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        /* Grid Layout for Services */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .service-item {
+            background: white;
+            border: 1px solid #eee;
+            padding: 15px;
+            text-align: center;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .service-item:hover { border-color: var(--primary-red); background: #fff5f5; }
+        .service-item .icon { font-size: 24px; margin-bottom: 8px; display: block; }
+        .service-item span { font-size: 13px; font-weight: bold; }
+
+        /* Admin Form */
+        label { font-size: 12px; font-weight: bold; display: block; margin-bottom: 5px; }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
+        .btn-add {
+            background-color: var(--primary-red);
+            color: white;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Block List */
+        .block-item {
+            background: #fff;
+            border-left: 5px solid var(--primary-red);
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
     </style>
 </head>
 <body>
 
 <header>
-    <h2>ශ්‍රී ලංකා හදිසි සේවා</h2>
-    <span class="status-online">● ONLINE</span>
+    <div class="logo-area">
+        <span style="font-size: 20px; margin-right: 10px;">🛡️</span>
+        අවහිර කළ අංක ලැයිස්තුව
+    </div>
+    <div class="status-badge">● ONLINE</div>
 </header>
 
 <div class="container">
+
     <div class="card">
-        <h3>හදිසි සේවා (Emergency)</h3>
-        <div class="emergency-item"><span>පොලිස් හදිසි ඇමතුම්</span> <a href="tel:119">119</a></div>
-        <div class="emergency-item"><span>සුවසැරිය ගිලන් රථ</span> <a href="tel:1990">1990</a></div>
-        <div class="emergency-item"><span>ගිනි නිවන ඒකකය</span> <a href="tel:110">110</a></div>
-        <div class="emergency-item"><span>අනතුරු ඇඟවීමේ මධ්‍යස්ථානය</span> <a href="tel:117">117</a></div>
+        <h3>📞 හදිසි සේවා (Emergency)</h3>
+        <p style="font-size: 12px; color: #666;">ඔබේ ප්‍රදේශයේ හදිසි සේවා සහ සහාය ලබාගන්න.</p>
+        
+        <div class="services-grid">
+            <div class="service-item" onclick="window.location.href='tel:119'">
+                <span class="icon">🚨</span><span>පොලිසිය</span>
+            </div>
+            <div class="service-item" onclick="window.location.href='tel:1990'">
+                <span class="icon">🚑</span><span>රෝහල් / 1990</span>
+            </div>
+            <div class="service-item" onclick="window.location.href='tel:110'">
+                <span class="icon">🔥</span><span>ගිනි නිවීම</span>
+            </div>
+            <div class="service-item">
+                <span class="icon">⛽</span><span>ඉන්ධන පිරවුම්හල්</span>
+            </div>
+            <div class="service-item">
+                <span class="icon">🛠️</span><span>වාහන සර්විස්</span>
+            </div>
+            <div class="service-item">
+                <span class="icon">➕</span><span>වෙනත්</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="search-container">
+        <input type="text" id="searchBox" placeholder="අංකයක් සොයන්න (Search number...)" onkeyup="searchNumber()">
+        <div id="searchResult" style="margin-top: 10px; font-weight: bold; text-align: center;"></div>
     </div>
 
     <div class="card">
-        <h3>අංකයක් සොයන්න</h3>
-        <input type="text" id="searchBox" placeholder="අංකය ඇතුළත් කරන්න..." onkeyup="searchNumber()">
-        <div id="searchResult"></div>
-    </div>
+        <h3 style="color: var(--primary-red);">➕ අලුත් අංකයක් ඇතුළත් කරන්න</h3>
+        
+        <label>දුරකථන අංකය</label>
+        <input type="text" id="phoneInput" placeholder="07XXXXXXXX">
 
-    <div class="card">
-        <h3>අලුත් අංකයක් ඇතුළත් කරන්න</h3>
-        <input type="text" id="phoneNo" placeholder="දුරකථන අංකය (07XXXXXXXX)">
-        <select id="reason">
+        <label>ගැටලුව සිදුවූ ස්ථානය (Location)</label>
+        <input type="text" id="locationInput" placeholder="නගරය හෝ ස්ථානය...">
+
+        <label>අවහිර කිරීමට හේතුව</label>
+        <select id="reasonInput">
             <option value="Spam Calls">Spam Calls</option>
             <option value="Fraud/Scam">Fraud/Scam</option>
             <option value="Harassment">Harassment</option>
+            <option value="Telemarketing">Telemarketing</option>
+            <option value="Wrong Number">Wrong Number</option>
         </select>
-        <button onclick="addNumber()">ලැයිස්තුවට එක් කරන්න</button>
+
+        <button class="btn-add" onclick="saveData()">ලැයිස්තුවට එක් කරන්න</button>
     </div>
 
     <div class="card">
-        <h3>වාර්තා වූ අංක ලැයිස්තුව</h3>
-        <div id="blockList"></div>
+        <h3>🚫 වාර්තා වූ අංක ලැයිස්තුව</h3>
+        <div id="blockList">
+            <p style="text-align: center; color: #999; font-size: 13px;">කිසිදු අංකයක් හමු නොවීය.</p>
+        </div>
     </div>
+
 </div>
 
 <script>
-    let blockedNumbers = JSON.parse(localStorage.getItem('blockedData')) || [];
+    // දත්ත ලබාගැනීම
+    let blockedData = JSON.parse(localStorage.getItem('sl_blocked_list')) || [];
 
-    function addNumber() {
-        const num = document.getElementById('phoneNo').value;
-        const res = document.getElementById('reason').value;
-        if(num === "") return alert("අංකය ඇතුළත් කරන්න!");
+    function saveData() {
+        const phone = document.getElementById('phoneInput').value;
+        const loc = document.getElementById('locationInput').value;
+        const reason = document.getElementById('reasonInput').value;
 
-        blockedNumbers.push({ number: num, reason: res });
-        localStorage.setItem('blockedData', JSON.stringify(blockedNumbers));
-        document.getElementById('phoneNo').value = "";
-        displayList();
+        if(!phone) { alert("කරුණාකර අංකයක් ඇතුළත් කරන්න!"); return; }
+
+        const newEntry = {
+            phone: phone,
+            location: loc,
+            reason: reason,
+            date: new Date().toLocaleDateString()
+        };
+
+        blockedData.push(newEntry);
+        localStorage.setItem('sl_blocked_list', JSON.stringify(blockedData));
+        
+        // Form එක Reset කිරීම
+        document.getElementById('phoneInput').value = "";
+        document.getElementById('locationInput').value = "";
+        
+        renderList();
+        alert("සාර්ථකව එක් කරන ලදී!");
     }
 
-    function displayList() {
+    function renderList() {
         const listDiv = document.getElementById('blockList');
-        listDiv.innerHTML = "";
-        blockedNumbers.forEach((item, index) => {
-            listDiv.innerHTML += `<div class="list-item"><b>${item.number}</b> - ${item.reason}</div>`;
-        });
+        if(blockedData.length === 0) {
+            listDiv.innerHTML = '<p style="text-align: center; color: #999; font-size: 13px;">කිසිදු අංකයක් හමු නොවීය.</p>';
+            return;
+        }
+
+        listDiv.innerHTML = blockedData.map((item, index) => `
+            <div class="block-item">
+                <div style="display:flex; justify-content:space-between;">
+                    <strong style="color:var(--primary-red)">${item.phone}</strong>
+                    <span style="font-size:10px; color:#999;">${item.date}</span>
+                </div>
+                <div style="font-size:12px; margin-top:5px;">
+                    📍 ${item.location || 'නොදනී'} | ⚠️ ${item.reason}
+                </div>
+            </div>
+        `).reverse().join('');
     }
 
     function searchNumber() {
-        const s = document.getElementById('searchBox').value;
-        const resultDiv = document.getElementById('searchResult');
-        if(s === "") { resultDiv.innerHTML = ""; return; }
+        const query = document.getElementById('searchBox').value;
+        const resDiv = document.getElementById('searchResult');
         
-        const found = blockedNumbers.find(item => item.number.includes(s));
+        if(!query) { resDiv.innerHTML = ""; return; }
+
+        const found = blockedData.find(item => item.phone.includes(query));
+
         if(found) {
-            resultDiv.innerHTML = `<p style="color:red;">⚠️ මෙම අංකය වාර්තා කර ඇත: ${found.reason}</p>`;
+            resDiv.innerHTML = `<span style="color:red;">⚠️ මෙම අංකය වාර්තා කර ඇත: ${found.reason}</span>`;
         } else {
-            resultDiv.innerHTML = `<p style="color:green;">✅ ආරක්ෂිත අංකයකි.</p>`;
+            resDiv.innerHTML = `<span style="color:green;">✅ ආරක්ෂිත අංකයකි.</span>`;
         }
     }
 
-    displayList();
+    // ආරම්භයේදී ලැයිස්තුව පෙන්වන්න
+    renderList();
 </script>
 
 </body>
