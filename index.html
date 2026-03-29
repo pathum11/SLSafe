@@ -3,118 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SL Emergency & Near Services</title>
+    <title>SL Emergency & Smart Search</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #d32f2f; --bg: #f4f7f6; }
-        body { font-family: 'Noto Sans Sinhala', sans-serif; background: var(--bg); margin: 0; }
+        :root { --primary: #d32f2f; --blue: #1976d2; --bg: #f8f9fa; }
+        body { font-family: 'Noto Sans Sinhala', sans-serif; background: var(--bg); margin: 0; padding-bottom: 50px; }
         
-        /* Header & Top Buttons */
-        header { background: white; padding: 15px; text-align: center; border-bottom: 3px solid var(--primary); }
-        .emergency-nav-btn { 
-            background: var(--primary); color: white; border: none; padding: 12px 25px; 
-            border-radius: 30px; font-weight: bold; cursor: pointer; width: 90%; font-size: 16px;
-        }
+        header { background: white; padding: 15px; text-align: center; border-bottom: 3px solid var(--primary); sticky: top; }
+        .emergency-nav-btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; width: 90%; font-weight: bold; cursor: pointer; }
 
         .container { max-width: 500px; margin: auto; padding: 15px; }
-        .card { background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .card { background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         
-        /* Location Section */
-        .location-box { text-align: center; display: none; } /* ආරම්භයේදී සැඟවී පවතී */
-        .auto-btn { background: #1976d2; color: white; border: none; padding: 10px; border-radius: 8px; width: 100%; margin-bottom: 10px; cursor: pointer; }
-        .manual-input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; margin-bottom: 10px; }
+        /* 01 & 02. Location Section */
+        .manual-input-group { display: flex; gap: 5px; margin-bottom: 10px; }
+        .manual-input { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 8px; }
+        .search-btn { background: var(--blue); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
         
-        /* Services Grid */
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .grid-item { 
-            background: #fff; border: 1px solid #eee; padding: 15px; border-radius: 12px; 
-            text-align: center; cursor: pointer; font-size: 13px; font-weight: bold;
-        }
-        .grid-item:hover { background: #fff5f5; border-color: var(--primary); }
-        .icon { font-size: 24px; display: block; margin-bottom: 5px; }
+        .location-display { background: #e3f2fd; padding: 10px; border-radius: 8px; font-size: 13px; color: #1565c0; margin-bottom: 15px; font-weight: bold; text-align: center; border: 1px dashed #1976d2; }
 
-        #statusText { font-size: 12px; color: #666; margin-top: 5px; }
+        /* 03. Grid & List Section */
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; }
+        .grid-item { background: #fff; border: 1px solid #eee; padding: 10px 5px; border-radius: 10px; text-align: center; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.2s; }
+        .grid-item:active { transform: scale(0.95); background: #fff5f5; }
+        .icon { font-size: 20px; display: block; margin-bottom: 5px; }
+
+        /* Result List Area */
+        .result-list { margin-top: 10px; }
+        .result-card { background: white; border-left: 5px solid var(--primary); padding: 15px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .result-card h4 { margin: 0 0 5px 0; color: #333; font-size: 15px; }
+        .result-info { font-size: 12px; color: #666; line-height: 1.6; }
+        .action-btns { display: flex; gap: 10px; margin-top: 10px; }
+        .action-btns a { flex: 1; text-align: center; padding: 8px; border-radius: 5px; text-decoration: none; font-size: 12px; font-weight: bold; }
+        .call-btn { background: #4caf50; color: white; }
+        .dir-btn { background: #f44336; color: white; }
     </style>
 </head>
 <body>
 
 <header>
-    <button class="emergency-nav-btn" onclick="toggleEmergency()">📞 හදිසි සේවා (Emergency Services)</button>
+    <button class="emergency-nav-btn">හදිසි සේවා සහ ස්ථාන සෙවුම</button>
 </header>
 
 <div class="container">
     
-    <div id="emergencySection" class="card location-box">
-        <h3>ස්ථානය තෝරන්න</h3>
+    <div class="card">
+        <h3>📍 ස්ථානය තෝරන්න</h3>
+        <button onclick="getAutoLocation()" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd; cursor:pointer;">Auto Location ලබාගන්න</button>
         
-        <button class="auto-btn" onclick="getAutoLocation()">📍 දැනට සිටින ස්ථානය ලබාගන්න (Auto)</button>
-        
-        <input type="text" id="manualLoc" class="manual-input" placeholder="නගරය හෝ ස්ථානය ඇතුළත් කරන්න (Manual)">
-        <p id="statusText">ස්ථානයක් තෝරා පහත බොත්තමක් ඔබන්න (10km ඇතුළත සොයයි)</p>
+        <div class="manual-input-group">
+            <input type="text" id="manualLoc" class="manual-input" placeholder="නගරය ඇතුළත් කරන්න...">
+            <button class="search-btn" onclick="setManualLocation()">Search</button>
+        </div>
+
+        <div id="locationNameDisplay" class="location-display">තවමත් ස්ථානයක් තෝරා නැත</div>
 
         <div class="grid">
-            <div class="grid-item" onclick="searchNear('Police Station')"><span class="icon">🚨</span>පොලිසිය</div>
-            <div class="grid-item" onclick="searchNear('Hospital')"><span class="icon">🏥</span>රෝහල්</div>
-            <div class="grid-item" onclick="searchNear('Pharmacy')"><span class="icon">💊</span>ෆාමසි</div>
-            <div class="grid-item" onclick="searchNear('Petrol Station')"><span class="icon">⛽</span>පිරවුම්හල්</div>
-            <div class="grid-item" onclick="searchNear('ATM')"><span class="icon">🏧</span>ATM</div>
-            <div class="grid-item" onclick="searchNear('Garage')"><span class="icon">🛠️</span>ගරාජ්</div>
-        </div>
-    </div>
-
-</div>
-
-<script>
-    let currentLat = "";
-    let currentLon = "";
-
-    // 01. Toggle Emergency Section
-    function toggleEmergency() {
-        const section = document.getElementById('emergencySection');
-        section.style.display = (section.style.display === "block") ? "none" : "block";
-    }
-
-    // 02. Auto Location Function
-    function getAutoLocation() {
-        if (navigator.geolocation) {
-            document.getElementById('statusText').innerText = "ස්ථානය සොයමින්...";
-            navigator.geolocation.getCurrentPosition(function(position) {
-                currentLat = position.coords.latitude;
-                currentLon = position.coords.longitude;
-                document.getElementById('statusText').innerText = "ස්ථානය තහවුරුයි: " + currentLat.toFixed(4) + ", " + currentLon.toFixed(4);
-                document.getElementById('manualLoc').value = ""; // Auto ගත් විට manual එක හිස් කරයි
-            });
-        } else {
-            alert("ඔබේ බ්‍රවුසරය ලොකේෂන් පහසුකමට සහය නොදක්වයි.");
-        }
-    }
-
-    // 04. Search Nearby (10km Range via Google Maps)
-    function searchNear(type) {
-        const manualLocation = document.getElementById('manualLoc').value;
-        let searchQuery = "";
-
-        // 03. ප්‍රමුඛතාවය: Manual Location එකක් ඇත්නම් එය භාවිතා කරයි
-        if (manualLocation) {
-            searchQuery = type + " near " + manualLocation;
-        } 
-        // දෙවනුව: Auto Location ලබාගෙන ඇත්නම් එය භාවිතා කරයි
-        else if (currentLat && currentLon) {
-            searchQuery = type;
-            const mapUrl = `https://www.google.com/maps/search/${type}/@${currentLat},${currentLon},13z`;
-            window.open(mapUrl, '_blank');
-            return;
-        } 
-        else {
-            alert("කරුණාකර ස්ථානයක් ඇතුළත් කරන්න හෝ Auto Location බොත්තම ඔබන්න.");
-            return;
-        }
-
-        // Google Maps හරහා සෙවීම
-        const finalUrl = `https://www.google.com/maps/search/${encodeURIComponent(searchQuery)}`;
-        window.open(finalUrl, '_blank');
-    }
-</script>
-
-</body>
-</html>
+            <div class="grid-item" onclick="findNearby('Police')"><span class="icon">🚨</span>පොලිසිය</div>
+            <div class="grid-item" onclick="findNearby('Hospital')"><span class="icon">🏥</span>රෝහල්</div>
+            <div class="grid-item" onclick="findNearby
