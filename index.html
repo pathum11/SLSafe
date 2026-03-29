@@ -3,22 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SL Emergency Search - Advanced</title>
+    <title>SL Smart Search</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #d32f2f; --blue: #1976d2; --bg: #f8f9fa; --success: #2e7d32; }
         body { font-family: 'Noto Sans Sinhala', sans-serif; background: var(--bg); margin: 0; padding-bottom: 50px; }
-        header { background: white; padding: 15px; text-align: center; border-bottom: 3px solid var(--primary); position: sticky; top: 0; z-index: 1000; }
+        header { background: white; padding: 15px; text-align: center; border-bottom: 3px solid var(--primary); }
         .emergency-nav-btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; width: 90%; font-weight: bold; }
         .container { max-width: 500px; margin: auto; padding: 15px; }
         .card { background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .location-display { background: #e3f2fd; padding: 12px; border-radius: 8px; font-size: 14px; color: #1565c0; margin: 15px 0; font-weight: bold; text-align: center; border: 1px dashed #1976d2; }
         .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-        .grid-item { background: #fff; border: 1px solid #eee; padding: 15px 5px; border-radius: 12px; text-align: center; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.3s; }
-        .grid-item:active { transform: scale(0.95); background: #fff5f5; }
-        .icon { font-size: 24px; display: block; margin-bottom: 5px; }
+        .grid-item { background: #fff; border: 1px solid #eee; padding: 15px 5px; border-radius: 12px; text-align: center; cursor: pointer; font-size: 11px; font-weight: bold; }
+        .result-card { background: white; border-left: 5px solid var(--primary); padding: 15px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.08); text-align: left; }
+        .distance-tag { display: inline-block; background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .action-btns { display: flex; gap: 8px; margin-top: 12px; }
+        .btn { flex: 1; text-align: center; padding: 10px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: bold; color: white; }
+        .call-btn { background: #1976d2; }
+        .dir-btn { background: var(--success); }
+    </style>
+</head>
+<body onload="getAutoLocation()">
+
+<header><button class="emergency-nav-btn">හදිසි සේවා සහ ස්ථාන සෙවුම</button></header>
+
+<div class="container">
+    <div class="card">
+        <div id="locationNameDisplay" class="location-display">ස්ථානය සොයමින් පවතියි...</div>
+        <div class="grid">
+            <div class="grid-item" onclick="findNearby('police', 'පොලිසිය')">🚨<br>පොලිසිය</div>
+            <div class="grid-item" onclick="findNearby('hospital', 'රෝහල')">🏥<br>රෝහල්</div>
+            <div class="grid-item" onclick="findNearby('fire_station', 'ගිනි නිවන')">🚒<br>ගිනි නිවන</div>
+            <div class="grid-item" onclick="findNearby('pharmacy', 'ඔසුසල')">💊<br>ඔසුසල්</div>
+            <div class="grid-item" onclick="findNearby('atm', 'ATM')">🏧<br>ATM</div>
+            <div class="grid-item" onclick="findNearby('fuel', 'ඉන්ධන පිරවුම්හල')">⛽<br>ඉන්ධන</div>
+        </div>
+        <div id="resultsArea"></div>
+    </div>
+</div>
+
+<script>
+    var userLat = null, userLon = null;
+
+    function getAutoLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                userLat = pos.coords.latitude;
+                userLon = pos.coords.longitude;
+                fetch("https://nominatim.openstreetmap.org/reverse?format=json&lat="+userLat+"&lon="+userLon)
+                .then(function(res){ return res.json(); })
+                .then(function(data){
+                    document.getElementById('locationNameDisplay').innerText = "📍 ස්ථානය: " + (data.address.city || data.address.town || "ලබාගත්තා");
+                });
+            }, function(err) {
+                document.getElementById('locationNameDisplay').innerText = "❌ Location Permission ලබා දෙන්න.";
+            });
+        }
+    }
+
+    function calcDist(lat1, lon1, lat2, lon2) {
+        var R = 6371;
+        var dLat = (lat2-lat1)*Math.PI/180;
+        var dLon = (lon2-lon1)*Math.PI/180;
+        var a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+        return (R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a))).toFixed(2);
+    }
+
+    function findNearby(tag, si) {
+        if (!userLat) { alert("ස්ථානය ලබාගන්නා තෙක් රැඳී සිටින්න."); return; }
+        var area = document.getElementById('resultsArea');
+        area.innerHTML = "<p>සොයමින් පවතියි...</p>";
+
+        var url = "https://overpass-api.de/api/interpreter?data=[out:json];node[amenity="+tag+"](around:10000,"+userLat+","+userLon+");out;";
         
-        /* Result Card Styling */
-        .result-card { background: white; border-left: 5px solid var(--primary); padding: 15px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
-        .result-card h4 { margin: 0 0 5px 0; font-size: 16px; color: #333; }
-        .distance-tag { display: inline-block; background: #e8f5e9; color: #2e7d32; padding: 2
+        fetch(url).then(function(res){ return res.json(); }).then(function(data) {
+            area.innerHTML = "";
+            if (data.elements.length === 0) { area.innerHTML = "ප්‍රතිඵල නැත."; return; }
+
+            data.elements.forEach(function(p) {
+                var d = calcDist(userLat, userLon, p.lat, p.lon);
+                var tel = p.tags.phone || "නැත";
+                var html = '<div class="result-card">' +
+                    '<h4>' + (p.tags.name || si) + '</h4>' +
+                    '<span class="distance-tag">📏 දුර: '+d+' km</span>' +
+                    '<p style="font-size:12px">📞 දුරකථන: '+tel+'</p>' +
+                    '<div class="action-btns">' +
+                    '<a href="tel:'+tel+'" class="btn call-btn">අමතන්න</a>' +
+                    '<a href="https://www.google.com/maps/dir/?api=1&destination='+p.lat+','+p.lon+'" target="_blank" class="btn dir-btn">🧭 මාර්ගය</a>' +
+                    '</div></div>';
+                area.innerHTML += html;
+            });
+        }).catch(function(){ area.innerHTML = "දෝෂයකි!"; });
+    }
+</script>
+</body>
+</html>
