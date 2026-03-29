@@ -3,40 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SL Smart Search AI - Final Stable</title>
+    <title>SL Smart Search AI - Manual Location</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #d32f2f; --blue: #1976d2; --bg: #f8f9fa; }
         body { font-family: 'Noto Sans Sinhala', sans-serif; background: var(--bg); margin: 0; padding: 0; }
-        header { background: white; padding: 15px; text-align: center; border-bottom: 4px solid var(--primary); position: sticky; top: 0; z-index: 1000; }
+        header { background: white; padding: 15px; text-align: center; border-bottom: 4px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
         .container { max-width: 500px; margin: auto; padding: 10px; }
         
-        .location-section { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: relative; }
-        .input-group { display: flex; gap: 8px; }
-        .loc-input { flex: 1; padding: 12px; border: 2px solid #eee; border-radius: 8px; font-family: inherit; font-size: 14px; outline: none; }
-        .auto-btn { background: var(--blue); color: white; border: none; padding: 0 15px; border-radius: 8px; cursor: pointer; font-size: 18px; }
+        /* Location Search Box */
+        .location-section { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .input-group { position: relative; display: flex; gap: 5px; }
+        .loc-input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; font-size: 14px; outline: none; }
+        .auto-btn { background: var(--blue); color: white; border: none; padding: 0 10px; border-radius: 8px; cursor: pointer; font-size: 18px; }
         
-        .suggestions { position: absolute; top: 65px; left: 15px; right: 15px; background: white; border: 1px solid #ddd; border-radius: 8px; z-index: 2000; max-height: 250px; overflow-y: auto; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .suggestion-item { padding: 12px; border-bottom: 1px solid #f0f0f0; cursor: pointer; font-size: 13px; line-height: 1.4; }
+        /* Suggestions List */
+        .suggestions { position: absolute; top: 100%; left: 0; right: 45px; background: white; border: 1px solid #ddd; border-radius: 0 0 8px 8px; z-index: 2000; max-height: 200px; overflow-y: auto; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .suggestion-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; font-size: 13px; }
         .suggestion-item:hover { background: #f0f7ff; }
 
-        .status-bar { font-size: 12px; color: #1565c0; margin-top: 10px; text-align: center; font-weight: bold; padding: 8px; background: #e3f2fd; border-radius: 8px; }
+        .current-status { font-size: 12px; color: #1565c0; margin-top: 8px; font-weight: bold; text-align: center; }
 
         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 15px; }
-        .grid-item { background: white; border: 1px solid #eee; padding: 12px 2px; border-radius: 12px; text-align: center; cursor: pointer; font-size: 10px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
-        .grid-item:active { transform: scale(0.92); background: #fff5f5; }
+        .grid-item { background: white; border: 1px solid #eee; padding: 12px 2px; border-radius: 12px; text-align: center; cursor: pointer; font-size: 10px; font-weight: bold; }
+        .grid-item:active { transform: scale(0.95); background: #fff5f5; }
         .icon { font-size: 22px; display: block; margin-bottom: 5px; }
 
-        .result-card { background: white; border-radius: 15px; padding: 15px; margin-bottom: 15px; border-left: 6px solid var(--primary); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        .mini-map { height: 180px; width: 100%; border-radius: 10px; margin: 10px 0; border: 1px solid #ddd; background: #f0f0f0; }
-        .badge { padding: 5px 10px; border-radius: 8px; font-size: 11px; font-weight: bold; color: white; background: #2e7d32; display: inline-flex; }
+        .result-card { background: white; border-radius: 15px; padding: 15px; margin-bottom: 15px; border-left: 6px solid var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+        .mini-map { height: 170px; width: 100%; border-radius: 10px; margin: 10px 0; border: 1px solid #ddd; }
+        .badge { padding: 5px 10px; border-radius: 8px; font-size: 11px; font-weight: bold; color: white; display: inline-block; background: #2e7d32; }
         
         .action-btns { display: flex; gap: 8px; margin-top: 12px; }
         .btn { flex: 1; text-align: center; padding: 12px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: bold; color: white; border: none; }
         .call-btn { background: var(--blue); }
         .dir-btn { background: #2e7d32; }
-        .loading { text-align: center; padding: 40px; color: #666; font-weight: bold; }
+        .loading { text-align: center; padding: 30px; font-size: 14px; color: #666; }
     </style>
 </head>
 <body onload="initAutoLocation()">
@@ -46,22 +48,22 @@
 <div class="container">
     <div class="location-section">
         <div class="input-group">
-            <input type="text" id="locInput" class="loc-input" placeholder="නගරය ටයිප් කරන්න (Kandy, Galle...)" oninput="handleLocInput(this.value)">
-            <button class="auto-btn" onclick="initAutoLocation()" title="ඔබ ඉන්න තැන">📍</button>
+            <input type="text" id="locInput" class="loc-input" placeholder="නගරය හෝ ස්ථානය ටයිප් කරන්න..." oninput="searchLocation(this.value)">
+            <button class="auto-btn" onclick="initAutoLocation()" title="Auto Location">📍</button>
+            <div id="suggestionBox" class="suggestions"></div>
         </div>
-        <div id="suggestionBox" class="suggestions"></div>
-        <div id="statusTxt" class="status-bar">ස්ථානය සොයමින්...</div>
+        <div id="statusTxt" class="current-status">ස්ථානය ලබාගනිමින්...</div>
     </div>
     
     <div class="grid">
-        <div onclick="startSearch('fuel', 'පිරවුම්හල')" class="grid-item"><span class="icon">⛽</span>ඉන්ධන</div>
-        <div onclick="startSearch('bank', 'බැංකුව')" class="grid-item"><span class="icon">🏦</span>බැංකු</div>
-        <div onclick="startSearch('atm', 'ATM')" class="grid-item"><span class="icon">🏧</span>ATM</div>
-        <div onclick="startSearch('hospital', 'රෝහල')" class="grid-item"><span class="icon">🏥</span>රෝහල්</div>
-        <div onclick="startSearch('police', 'පොලිසිය')" class="grid-item"><span class="icon">🚨</span>පොලිසිය</div>
-        <div onclick="startSearch('pharmacy', 'ඔසුසල')" class="grid-item"><span class="icon">💊</span>ඔසුසල්</div>
-        <div onclick="startSearch('car_repair', 'සර්විස්')" class="grid-item"><span class="icon">🛠️</span>සර්විස්</div>
-        <div onclick="startSearch('toilets', 'වැසිකිළි')" class="grid-item"><span class="icon">🚻</span>වැසිකිළි</div>
+        <div class="grid-item" onclick="startSearch('fuel', 'පිරවුම්හල')"><span class="icon">⛽</span>ඉන්ධන</div>
+        <div class="grid-item" onclick="startSearch('bank', 'බැංකුව')"><span class="icon">🏦</span>බැංකු</div>
+        <div class="grid-item" onclick="startSearch('atm', 'ATM')"><span class="icon">🏧</span>ATM</div>
+        <div class="grid-item" onclick="startSearch('hospital', 'රෝහල')"><span class="icon">🏥</span>රෝහල්</div>
+        <div class="grid-item" onclick="startSearch('police', 'පොලිසිය')"><span class="icon">🚨</span>පොලිසිය</div>
+        <div class="grid-item" onclick="startSearch('pharmacy', 'ඔසුසල')"><span class="icon">💊</span>ඔසුසල්</div>
+        <div class="grid-item" onclick="startSearch('car_repair', 'සර්විස්')"><span class="icon">🛠️</span>සර්විස්</div>
+        <div class="grid-item" onclick="startSearch('toilets', 'වැසිකිළි')"><span class="icon">🚻</span>වැසිකිළි</div>
     </div>
     
     <div id="results"></div>
@@ -69,61 +71,58 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    var uLat = null, uLon = null;
+    var uLat, uLon;
     const API_KEY = "AIzaSyBphi5HUEHNCKV1zr4h5ZI8aKSKAByHPpU";
 
-    // 1. Auto Location
+    // 1. Auto Location (GPS)
     function initAutoLocation() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(p => {
-                updatePosition(p.coords.latitude, p.coords.longitude, "ඔබ සිටින ස්ථානය (Auto)");
-                document.getElementById('locInput').value = "";
+                setCoords(p.coords.latitude, p.coords.longitude, "වත්මන් ස්ථානය (Auto)");
             }, () => {
-                document.getElementById('statusTxt').innerHTML = "<span style='color:red'>📍 GPS ක්‍රියාවිරහිතයි. නගරය ටයිප් කරන්න.</span>";
+                document.getElementById('statusTxt').innerHTML = "<span style='color:red'>Auto Location දෝෂයකි. Manual ටයිප් කරන්න.</span>";
             });
         }
     }
 
-    // 2. Suggestions
-    let timer;
-    function handleLocInput(val) {
-        clearTimeout(timer);
-        if (val.length < 3) { document.getElementById('suggestionBox').style.display = 'none'; return; }
-        timer = setTimeout(async () => {
-            const box = document.getElementById('suggestionBox');
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${val}&countrycodes=lk&limit=5`);
+    // 2. Manual Location Search (Suggestions)
+    async function searchLocation(query) {
+        const box = document.getElementById('suggestionBox');
+        if (query.length < 3) { box.style.display = 'none'; return; }
+
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&countrycodes=lk&limit=5`);
             const data = await res.json();
             box.innerHTML = "";
             if (data.length > 0) {
                 box.style.display = 'block';
-                data.forEach(p => {
-                    const d = document.createElement('div');
-                    d.className = 'suggestion-item';
-                    d.innerText = p.display_name;
-                    d.onclick = () => {
-                        updatePosition(p.lat, p.lon, p.display_name.split(',')[0]);
+                data.forEach(place => {
+                    const div = document.createElement('div');
+                    div.className = 'suggestion-item';
+                    div.innerText = place.display_name;
+                    div.onclick = () => {
+                        setCoords(place.lat, place.lon, place.display_name);
                         box.style.display = 'none';
-                        document.getElementById('locInput').value = p.display_name.split(',')[0];
+                        document.getElementById('locInput').value = place.display_name.split(',')[0];
                     };
-                    box.appendChild(d);
+                    box.appendChild(div);
                 });
             }
-        }, 500);
+        } catch (e) {}
     }
 
-    function updatePosition(lat, lon, label) {
+    function setCoords(lat, lon, label) {
         uLat = parseFloat(lat);
         uLon = parseFloat(lon);
         document.getElementById('statusTxt').innerHTML = `📍 ස්ථානය: ${label}`;
-        document.getElementById('results').innerHTML = ""; 
-        console.log("Position Updated:", uLat, uLon);
+        document.getElementById('results').innerHTML = ""; // පරණ ප්‍රතිඵල මකන්න
     }
 
-    // 3. Category Search
+    // 3. Search Categories (10KM)
     async function startSearch(type, siName) {
-        if (uLat === null) return alert("කරුණාකර පළමුව ස්ථානයක් තෝරන්න!");
+        if (!uLat) return alert("කරුණාකර ස්ථානයක් තෝරන්න.");
         const resDiv = document.getElementById('results');
-        resDiv.innerHTML = `<div class="loading">${siName} සොයමින්...</div>`;
+        resDiv.innerHTML = `<div class="loading">තෝරාගත් ස්ථානයේ සිට ${siName} සොයමින්...</div>`;
 
         try {
             const url = `https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=${type}](around:10000,${uLat},${uLon});out;`;
@@ -136,17 +135,17 @@
                 if (!name) {
                     try {
                         const geo = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${item.lat}&lon=${item.lon}`);
-                        const d = await geo.json();
-                        const village = d.address.suburb || d.address.village || d.address.town || "";
+                        const geoData = await geo.json();
+                        const village = geoData.address.suburb || geoData.address.village || geoData.address.town || "";
                         name = village ? `${siName} (${village})` : siName;
                     } catch(e) { name = siName; }
                 }
-                const dist = getDistance(uLat, uLon, item.lat, item.lon);
-                list.push({ id: item.id, name, dist, lat: item.lat, lon: item.lon, phone: item.tags.phone || "" });
+                const d = getDistance(uLat, uLon, item.lat, item.lon);
+                list.push({ id: item.id, name, dist: d, lat: item.lat, lon: item.lon, phone: item.tags.phone || "" });
             }
             list.sort((a, b) => a.dist - b.dist);
             renderResults(list);
-        } catch (e) { resDiv.innerHTML = "සෙවීමේ දෝෂයකි!"; }
+        } catch (e) { resDiv.innerHTML = "දෝෂයකි!"; }
     }
 
     function getDistance(l1, n1, l2, n2) {
@@ -158,7 +157,7 @@
 
     function renderResults(list) {
         const resDiv = document.getElementById('results');
-        resDiv.innerHTML = list.length === 0 ? "<p class='loading'>කිසිවක් හමු නොවීය.</p>" : "";
+        resDiv.innerHTML = list.length === 0 ? "ප්‍රතිඵල නැත." : "";
         list.forEach(res => {
             const mid = `map-${res.id}`;
             resDiv.innerHTML += `
@@ -168,14 +167,14 @@
                     <div id="${mid}" class="mini-map"></div>
                     <div class="action-btns">
                         <a href="tel:${res.phone}" class="btn call-btn" ${!res.phone ? 'style="display:none"' : ''}>අමතන්න</a>
-                        <a href="https://www.google.com/maps/dir/?api=1&destination=${res.lat},${res.lon}" target="_blank" class="btn dir-btn">මාර්ගය (Maps)</a>
+                        <a href="https://www.google.com/maps/dir/?api=1&destination=${res.lat},${res.lon}" target="_blank" class="btn dir-btn">මාර්ගය</a>
                     </div>
                 </div>`;
             setTimeout(() => {
                 var map = L.map(mid, { zoomControl: false }).setView([res.lat, res.lon], 15);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
                 L.marker([res.lat, res.lon]).addTo(map);
-            }, 500);
+            }, 400);
             improveAI(res.id, res.name);
         });
     }
