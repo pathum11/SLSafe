@@ -1,67 +1,40 @@
-import { useState, useEffect, useRef } from "react";
-import { GoogleGenAI } from "@google/genai";
-import { auth, db } from "./firebase";
-// ... අනෙකුත් imports ...
+<!DOCTYPE html>
+<html lang="si">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SL Location Assistant</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="/manifest.json">
+</head>
+<body>
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    <div class="container">
+        <header>
+            <h1>🇱🇰 SL Assistant</h1>
+            <p>ස්ථාන සහ දුරකථන අංක පරීක්ෂාව</p>
+        </header>
 
-export default function App() {
-  // --- States ---
-  const [isOffline, setIsOffline] = useState(!navigator.onLine);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [userCoords, setUserCoords] = useState<{lat: number, lng: number} | null>(null);
+        <section class="card">
+            <h3>📍 වත්මන් ස්ථානය (Location)</h3>
+            <button onclick="detectLocation()">ස්ථානය හඳුනාගන්න</button>
+            <div id="locationResult" class="result">මෙහි නම දිස්වේ...</div>
+        </section>
 
-  // --- Offline & PWA Logic ---
-  useEffect(() => {
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
-    const handleBeforeInstallPrompt = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
+        <section class="card">
+            <h3>🔍 නගරය සොයන්න (Search)</h3>
+            <input type="text" id="cityInput" placeholder="නගරයේ නම ටයිප් කරන්න..." oninput="fetchSuggestions(this.value)">
+            <ul id="suggestionList"></ul>
+        </section>
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-
-  // --- AI Location Detection ---
-  const detectUserLocation = async () => {
-    navigator.geolocation.getCurrentPosition(async (position) => {
-      const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
-      setUserCoords(coords);
-      
-      // AI මගින් ස්ථානයේ නම ලබා ගැනීම
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `What is the name of the area for ${coords.lat}, ${coords.lng} in Sri Lanka?`,
-      });
-      console.log(response.text);
-    });
-  };
-
-  // --- Install App Function ---
-  const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') setDeferredPrompt(null);
-    } else {
-      // ස්ථාපනය සඳහා උදව් පෙන්වීම (Help Modal)
-      setShowInstallHelp(true);
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-50">
-      {/* UI කොටස් මෙහි ඇතුළත් වේ */}
-      <button onClick={handleInstallClick}>Install App</button>
+        <section class="card">
+            <h3>📞 අංක පරීක්ෂාව (Phone Lookup)</h3>
+            <input type="tel" id="phoneInput" placeholder="07X XXXXXXX">
+            <button onclick="checkPhone()">සොයන්න</button>
+            <div id="phoneResult" class="result">නම: Unknown</div>
+        </section>
     </div>
-  );
-}
+
+    <script type="module" src="src/app.js"></script>
+</body>
+</html>
