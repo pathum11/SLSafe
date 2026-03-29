@@ -65,7 +65,7 @@
         <div onclick="startSearch('police', 'පොලිසිය')" class="grid-item"><span class="icon">🚨</span>පොලිසිය</div>
         <div onclick="startSearch('pharmacy', 'ඔසුසල')" class="grid-item"><span class="icon">💊</span>ඔසුසල්</div>
         <div onclick="startSearch('car_repair', 'සර්විස්')" class="grid-item"><span class="icon">🛠️</span>සර්විස්</div>
-        <div onclick="startSearch('toilets', 'වැසිකිළි')" class="grid-item"><span class="icon">🚻</span>වැසිකිළි</div>
+        <div onclick="startSearch('toilets', 'woshroom')" class="grid-item"><span class="icon">🚻</span>woshroom</div>
     </div>
     
     <div id="results"></div>
@@ -79,10 +79,10 @@
     function initAutoLocation() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(p => {
-                updatePosition(p.coords.latitude, p.coords.longitude, "ඔබ සිටින ස්ථානය (Auto)");
+                updatePosition(p.coords.latitude, p.coords.longitude, "ඔබ සිටින ස්ථානය සොයාගත්තා");
                 document.getElementById('locInput').value = "";
             }, () => {
-                document.getElementById('statusTxt').innerText = "📍 කරුණාකර නගරය ටයිප් කරන්න.";
+                document.getElementById('statusTxt').innerText = "📍 කරුණාකර ස්ථානය ටයිප් කරන්න.";
             });
         }
     }
@@ -150,7 +150,7 @@
             }
             list.sort((a, b) => a.dist - b.dist);
             renderResults(list);
-        } catch (e) { resDiv.innerHTML = "සෙවීමේ දෝෂයකි!"; }
+        } catch (e) { resDiv.innerHTML = "සෙවීමේ දෝෂයකි නැවත උත්සහ කරන්න.!"; }
     }
 
     function getDistance(l1, n1, l2, n2) {
