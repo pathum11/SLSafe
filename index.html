@@ -99,4 +99,76 @@
             <button style="width:100%; padding:10px; background:#1a1c23; color:white; border:none; border-radius:8px; margin-top:10px; font-size:11px;">අවහිර කළ අංක කළමනාකරණය</button>
         </div>
         <div class="card">
-            <b style="color:var(--
+            <b style="color:var(--primary);">+ අලුත් අංකයක් ඇතුළත් කරන්න</b>
+            <input type="text" class="loc-input" style="width:100%; margin-top:10px; box-sizing:border-box;" placeholder="දුරකථන අංකය">
+            <div class="reason-grid" style="margin-top:10px;">
+                <div class="reason-chip" onclick="this.classList.toggle('selected')">Spam</div>
+                <div class="reason-chip" onclick="this.classList.toggle('selected')">Scam</div>
+                <div class="reason-chip" onclick="this.classList.toggle('selected')">Harassment</div>
+            </div>
+            <button class="hero-btn btn-red" style="width:100%; margin:15px 0 0 0; padding:15px;">ලැයිස්තුවට එක් කරන්න</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    var uLat = null, uLon = null;
+
+    // පිටු මාරු කිරීමේ නිවැරදි ක්‍රමය
+    function navTo(pageId) {
+        // සියලුම පිටු සඟවන්න
+        document.querySelectorAll('.screen').forEach(s => {
+            s.classList.remove('active');
+        });
+        // අවශ්‍ය පිටුව පමණක් පෙන්වන්න
+        const target = document.getElementById(pageId);
+        target.classList.add('active');
+        
+        // සෙවුම් පිටුවට යන විට GPS ස්වයංක්‍රීයව පණගන්වන්න
+        if(pageId === 'searchPage') initAutoLocation();
+    }
+
+    function initAutoLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(p => {
+                uLat = p.coords.latitude; uLon = p.coords.longitude;
+                document.getElementById('statusTxt').innerText = "📍 වත්මන් ස්ථානය හඳුනාගත්තා";
+            }, () => {
+                document.getElementById('statusTxt').innerHTML = "<span style='color:red'>📍 ස්ථානය ටයිප් කරන්න.</span>";
+            });
+        }
+    }
+
+    async function startSearch(type, siName) {
+        if (!uLat) return alert("කරුණාකර ස්ථානය ලබාගන්නා තෙක් රැඳී සිටින්න.");
+        const resDiv = document.getElementById('results');
+        resDiv.innerHTML = `<div style="text-align:center; padding:20px;">${siName} සොයමින්...</div>`;
+
+        try {
+            const url = `https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=${type}](around:10000,${uLat},${uLon});out;`;
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            resDiv.innerHTML = data.elements.length === 0 ? "කිසිවක් හමු නොවීය." : "";
+            data.elements.slice(0, 10).forEach(item => {
+                const mid = `map-${item.id}`;
+                resDiv.innerHTML += `
+                    <div class="result-card">
+                        <h4>${item.tags.name || siName}</h4>
+                        <div id="${mid}" class="mini-map"></div>
+                        <div class="action-btns">
+                            <a href="http://googleusercontent.com/maps.google.com/4{item.lat},${item.lon}" target="_blank" class="btn" style="background:#2e7d32">සිතියම බලන්න</a>
+                        </div>
+                    </div>`;
+                setTimeout(() => {
+                    var map = L.map(mid, {zoomControl:false}).setView([item.lat, item.lon], 15);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                    L.marker([item.lat, item.lon]).addTo(map);
+                }, 300);
+            });
+        } catch (e) { resDiv.innerHTML = "දෝෂයකි!"; }
+    }
+</script>
+</body>
+</html>
