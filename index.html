@@ -1,202 +1,190 @@
-<!DOCTYPE html>
-<html lang="si">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SL Smart Search AI - 2026 Stable</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        :root { --primary: #d32f2f; --blue: #1976d2; --bg: #f8f9fa; }
-        body { font-family: 'Noto Sans Sinhala', sans-serif; background: var(--bg); margin: 0; padding: 0; }
-        header { background: white; padding: 15px; text-align: center; border-bottom: 4px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
-        .container { max-width: 500px; margin: auto; padding: 10px; }
+import os, time, json, threading, requests
+import pandas as pd
+import numpy as np
+from binance.client import Client
+from flask import Flask, request
+
+# --- 1. CONFIGURATIONS ---
+API_KEY = os.getenv("BINANCE_API_KEY")
+API_SECRET = os.getenv("BINANCE_API_SECRET")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+PORT = int(os.environ.get("PORT", 8080))
+
+client = Client(API_KEY, API_SECRET)
+app = Flask(__name__)
+DB_FILE = "trade_state.json"
+
+# Settings
+LB_BARS = 5
+RB_BARS = 5
+DEVIATION_PCT = 1.5
+ATR_LEN = 11
+ATR_MULT_TP = 4.0
+ATR_MULT_SL = 4.0
+MAX_POSITIONS = 15
+
+def load_data():
+    if os.path.exists(DB_FILE):
+        try:
+            with open(DB_FILE, 'r') as f: return json.load(f)
+        except: pass
+    return {
+        'active_positions': {}, 
+        'symbol_accumulated_loss': {}, 
+        'signal_count': 0, 
+        'bot_memory': {},
+        'is_paused': False,      # Telegram notifications pause
+        'is_scanning': True      # Market scanning control (නව එක)
+    }
+
+state = load_data()
+
+# කලින් state එකේ is_scanning නැතිනම් එය එකතු කිරීම
+if 'is_scanning' not in state: state['is_scanning'] = True
+
+def sync_save():
+    try:
+        with open(DB_FILE, 'w') as f: json.dump(state, f)
+    except: pass
+
+def execute_telegram_send(msg):
+    if state.get('is_paused', False): return # පෝස් කර ඇත්නම් මැසේජ් යවන්නේ නැත
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    try: requests.post(url, data={"chat_id": TELEGRAM_CHAT_ID, "text": msg, "parse_mode": "HTML"}, timeout=15)
+    except: pass
+
+# --- 2. INDICATOR LOGIC (HH/LL/HL/LH) ---
+def get_pivots_python(df, lb, rb):
+    highs = df['high'].values
+    lows = df['low'].values
+    p_highs = [np.nan] * len(df)
+    p_lows = [np.nan] * len(df)
+    if len(df) < (lb + rb + 2): return p_highs, p_lows
+    for i in range(lb, len(df) - rb):
+        if all(highs[i] >= highs[i-j] for j in range(1, lb+1)) and all(highs[i] > highs[i+j] for j in range(1, rb+1)):
+            p_highs[i] = highs[i]
+        if all(lows[i] <= lows[i-j] for j in range(1, lb+1)) and all(lows[i] < lows[i+j] for j in range(1, rb+1)):
+            p_lows[i] = lows[i]
+    return p_highs, p_lows
+
+def check_signal(symbol, df):
+    try:
+        if symbol not in state['bot_memory']:
+            state['bot_memory'][symbol] = {'lookLH': False, 'lookHL': False}
+        p_highs, p_lows = get_pivots_python(df, LB_BARS, RB_BARS)
+        valid_ph = [x for x in p_highs if not np.isnan(x)]
+        valid_pl = [x for x in p_lows if not np.isnan(x)]
+        if len(valid_ph) < 2 or len(valid_pl) < 2: return None
         
-        /* Location Search */
-        .location-section { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: relative; }
-        .input-group { display: flex; gap: 8px; }
-        .loc-input { flex: 1; padding: 12px; border: 2px solid #eee; border-radius: 8px; font-family: inherit; font-size: 14px; outline: none; transition: 0.3s; }
-        .loc-input:focus { border-color: var(--blue); }
-        .auto-btn { background: var(--blue); color: white; border: none; padding: 0 15px; border-radius: 8px; cursor: pointer; font-size: 18px; }
+        last_ph, prev_ph = valid_ph[-1], valid_ph[-2]
+        last_pl, prev_pl = valid_pl[-1], valid_pl[-2]
+        dev = df['close'].iloc[-1] * (DEVIATION_PCT / 100)
         
-        .suggestions { position: absolute; top: 60px; left: 15px; right: 15px; background: white; border: 1px solid #ddd; border-radius: 8px; z-index: 2000; max-height: 250px; overflow-y: auto; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .suggestion-item { padding: 12px; border-bottom: 1px solid #f0f0f0; cursor: pointer; font-size: 13px; line-height: 1.4; }
-        .suggestion-item:hover { background: #f0f7ff; }
-
-        .status-bar { font-size: 12px; color: #1565c0; margin-top: 10px; text-align: center; font-weight: bold; padding: 5px; background: #e3f2fd; border-radius: 5px; }
-
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 15px; }
-        .grid-item { background: white; border: 1px solid #eee; padding: 12px 2px; border-radius: 12px; text-align: center; cursor: pointer; font-size: 10px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
-        .grid-item:active { transform: scale(0.92); background: #fff5f5; }
-        .icon { font-size: 22px; display: block; margin-bottom: 5px; }
-
-        .result-card { background: white; border-radius: 15px; padding: 15px; margin-bottom: 15px; border-left: 6px solid var(--primary); box-shadow: 0 4px 12px rgba(0,0,0,0.08); animation: fadeIn 0.4s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        if (last_ph > prev_ph) and (last_ph - prev_ph > dev): state['bot_memory'][symbol]['lookLH'] = True
+        if (last_pl < prev_pl) and (prev_pl - last_pl > dev): state['bot_memory'][symbol]['lookHL'] = True
         
-        .mini-map { height: 180px; width: 100%; border-radius: 10px; margin: 10px 0; border: 1px solid #ddd; background: #f0f0f0; }
-        .badge { padding: 5px 10px; border-radius: 8px; font-size: 11px; font-weight: bold; color: white; background: #2e7d32; display: inline-flex; align-items: center; gap: 4px; }
-        
-        .action-btns { display: flex; gap: 8px; margin-top: 12px; }
-        .btn { flex: 1; text-align: center; padding: 12px; border-radius: 8px; text-decoration: none; font-size: 12px; font-weight: bold; color: white; border: none; }
-        .call-btn { background: var(--blue); }
-        .dir-btn { background: #2e7d32; }
-        .loading { text-align: center; padding: 40px; color: #666; font-weight: bold; }
-    </style>
-</head>
-<body onload="initAutoLocation()">
+        if (last_ph < prev_ph) and state['bot_memory'][symbol]['lookLH']:
+            state['bot_memory'][symbol]['lookLH'] = False
+            return "SELL"
+        if (last_pl > prev_pl) and state['bot_memory'][symbol]['lookHL']:
+            state['bot_memory'][symbol]['lookHL'] = False
+            return "BUY"
+    except: pass
+    return None
 
-<header><b style="color:var(--primary)">ශ්‍රී ලංකා SMART සෙවුම</b></header>
+# --- 3. CORE ENGINE ---
+def open_trade(s, side, df):
+    if not state.get('is_scanning', True): return # ස්කෑන් නවතා ඇත්නම් ට්‍රේඩ් ගන්නේ නැත
 
-<div class="container">
-    <div class="location-section">
-        <div class="input-group">
-            <input type="text" id="locInput" class="loc-input" placeholder="ස්ථානය ටයිප් කරන්න (Kandy, Galle...)" oninput="handleLocInput(this.value)">
-            <button class="auto-btn" onclick="initAutoLocation()">📍</button>
-        </div>
-        <div id="suggestionBox" class="suggestions"></div>
-        <div id="statusTxt" class="status-bar">ස්ථානය සොයමින්...</div>
-    </div>
+    curr_p = df['close'].iloc[-1]
+    df['tr'] = np.maximum(df['high'] - df['low'], np.maximum(abs(df['high'] - df['close'].shift(1)), abs(df['low'] - df['close'].shift(1))))
+    atr = df['tr'].rolling(ATR_LEN).mean().iloc[-1]
     
-    <div class="grid">
-        <div onclick="startSearch('fuel', 'පිරවුම්හල')" class="grid-item"><span class="icon">⛽</span>ඉන්ධන</div>
-        <div onclick="startSearch('bank', 'බැංකුව')" class="grid-item"><span class="icon">🏦</span>බැංකු</div>
-        <div onclick="startSearch('atm', 'ATM')" class="grid-item"><span class="icon">🏧</span>ATM</div>
-        <div onclick="startSearch('hospital', 'රෝහල')" class="grid-item"><span class="icon">🏥</span>රෝහල්</div>
-        <div onclick="startSearch('police', 'පොලිසිය')" class="grid-item"><span class="icon">🚨</span>පොලිසිය</div>
-        <div onclick="startSearch('pharmacy', 'ඔසුසල')" class="grid-item"><span class="icon">💊</span>ඔසුසල්</div>
-        <div onclick="startSearch('car_repair', 'සර්විස්')" class="grid-item"><span class="icon">🛠️</span>සර්විස්</div>
-        <div onclick="startSearch('toilets', 'Woshroom')" class="grid-item"><span class="icon">🚻</span>Woshroom</div>
-        <div onclick="startSearch('Tyre service', 'Tyre service')" class="grid-item"><span class="icon">🛞</span>Tyre service</div>
-        <div onclick="startSearch('Bus station', 'Bus station')" class="grid-item"><span class="icon">🚌</span>Bus station</div>
-    </div>
+    loss_rec = state['symbol_accumulated_loss'].get(s, 0.0)
+    t_dist = (atr * ATR_MULT_TP) + loss_rec
+    s_dist = (atr * ATR_MULT_SL)
     
-    <div id="results"></div>
-</div>
+    tp = curr_p + t_dist if side == "BUY" else curr_p - t_dist
+    sl = curr_p - s_dist if side == "BUY" else curr_p + s_dist
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-    var uLat, uLon, lastCategory = null;
-    const API_KEY = "AIzaSyBphi5HUEHNCKV1zr4h5ZI8aKSKAByHPpU";
+    state['active_positions'][s] = {'side': side, 'tp': tp, 'sl': sl, 'entry': curr_p}
+    state['signal_count'] += 1
+    execute_telegram_send(f"🚀 <b>SIGNAL #{state['signal_count']}</b>\n🪙 {s} | {side}\n🎯 TP: {round(tp, 6)}\n🛑 SL: {round(sl, 6)}")
+    sync_save()
 
-    function initAutoLocation() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(p => {
-                updatePosition(p.coords.latitude, p.coords.longitude, "ඔබ සිටින ස්ථානය සොයාගත්තා");
-                document.getElementById('locInput').value = "";
-            }, () => {
-                document.getElementById('statusTxt').innerText = "📍 කරුණාකර ස්ථානය ටයිප් කරන්න.";
-            });
-        }
-    }
+def scan_markets():
+    while True:
+        try:
+            # පවතින ට්‍රේඩ් පාලනය සැමවිටම සිදු වේ (Close කිරීමට)
+            for s in list(state['active_positions'].keys()):
+                try:
+                    p = float(client.futures_symbol_ticker(symbol=s)['price'])
+                    pos = state['active_positions'][s]
+                    if (pos['side']=="BUY" and p >= pos['tp']) or (pos['side']=="SELL" and p <= pos['tp']):
+                        state['symbol_accumulated_loss'][s] = 0.0
+                        execute_telegram_send(f"✅ <b>PROFIT {s}</b>")
+                        del state['active_positions'][s]
+                        sync_save()
+                    elif (pos['side']=="BUY" and p <= pos['sl']) or (pos['side']=="SELL" and p >= pos['sl']):
+                        state['symbol_accumulated_loss'][s] = state['symbol_accumulated_loss'].get(s, 0.0) + abs(pos['entry'] - pos['sl'])
+                        execute_telegram_send(f"❌ <b>LOSS {s}</b>")
+                        del state['active_positions'][s]
+                        sync_save()
+                except: continue
 
-    let searchTimer;
-    function handleLocInput(val) {
-        clearTimeout(searchTimer);
-        if (val.length < 3) { document.getElementById('suggestionBox').style.display = 'none'; return; }
-        searchTimer = setTimeout(() => fetchSuggestions(val), 500);
-    }
-
-    async function fetchSuggestions(query) {
-        const box = document.getElementById('suggestionBox');
-        try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&countrycodes=lk&limit=5`);
-            const data = await res.json();
-            box.innerHTML = "";
-            if (data.length > 0) {
-                box.style.display = 'block';
-                data.forEach(p => {
-                    const div = document.createElement('div');
-                    div.className = 'suggestion-item';
-                    div.innerText = p.display_name;
-                    div.onclick = () => {
-                        updatePosition(p.lat, p.lon, p.display_name.split(',')[0]);
-                        box.style.display = 'none';
-                        document.getElementById('locInput').value = p.display_name.split(',')[0];
-                    };
-                    box.appendChild(div);
-                });
-            }
-        } catch (e) {}
-    }
-
-    function updatePosition(lat, lon, label) {
-        uLat = parseFloat(lat);
-        uLon = parseFloat(lon);
-        document.getElementById('statusTxt').innerHTML = `📍 ස්ථානය: ${label}`;
-        document.getElementById('results').innerHTML = ""; // මීට පෙර සෙවූ ප්‍රතිඵල ඉවත් කරයි
-    }
-
-    async function startSearch(type, siName) {
-        if (!uLat) return alert("කරුණාකර ප්‍රථමයෙන් ස්ථානයක් තෝරන්න.");
-        const resDiv = document.getElementById('results');
-        resDiv.innerHTML = `<div class="loading">${siName} සොයමින්...</div>`;
-
-        try {
-            const url = `https://overpass-api.de/api/interpreter?data=[out:json];node[amenity=${type}](around:10000,${uLat},${uLon});out;`;
-            const response = await fetch(url);
-            const data = await response.json();
+            # ස්කෑන් කිරීම ක්‍රියාත්මක නම් පමණක් අලුත් ට්‍රේඩ් පරීක්ෂා කරයි
+            if state.get('is_scanning', True):
+                tickers = client.futures_ticker()
+                symbols = [t['symbol'] for t in tickers if t['symbol'].endswith("USDT") and float(t['lastPrice']) < 1.0]
+                for s in symbols:
+                    if not state.get('is_scanning', True): break # අතරමැදදී නැවැත්වුවහොත්
+                    if len(state['active_positions']) >= MAX_POSITIONS: break
+                    if s in state['active_positions']: continue
+                    k = client.futures_klines(symbol=s, interval='5m', limit=500)
+                    df = pd.DataFrame(k, columns=['t','o','high','low','close','v','ct','qv','nt','tb','tq','i'])
+                    df[['high','low','close']] = df[['high','low','close']].astype(float)
+                    side = check_signal(s, df)
+                    if side: open_trade(s, side, df)
+                    time.sleep(0.5)
             
-            let list = [];
-            for (let item of data.elements) {
-                let name = item.tags.name;
-                if (!name) {
-                    try {
-                        const geo = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${item.lat}&lon=${item.lon}`);
-                        const d = await geo.json();
-                        const village = d.address.suburb || d.address.village || d.address.town || "";
-                        name = village ? `${siName} (${village})` : siName;
-                    } catch(e) { name = siName; }
-                }
-                const dist = getDistance(uLat, uLon, item.lat, item.lon);
-                list.push({ id: item.id, name, dist, lat: item.lat, lon: item.lon, phone: item.tags.phone || "" });
-            }
-            list.sort((a, b) => a.dist - b.dist);
-            renderResults(list);
-        } catch (e) { resDiv.innerHTML = "සෙවීමේ දෝෂයකි නැවත උත්සහ කරන්න.!"; }
-    }
+            time.sleep(10)
+        except: time.sleep(10)
 
-    function getDistance(l1, n1, l2, n2) {
-        let R = 6371;
-        let dL = (l2-l1)*Math.PI/180, dN = (n2-n1)*Math.PI/180;
-        let a = Math.sin(dL/2)**2 + Math.cos(l1*Math.PI/180)*Math.cos(l2*Math.PI/180)*Math.sin(dN/2)**2;
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    }
+# --- 4. TELEGRAM WEBHOOK (COMMANDS) ---
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    update = request.get_json()
+    if "message" in update and "text" in update["message"]:
+        text = update["message"]["text"]
+        
+        # 1. පණිවිඩ පාලනය (පැරණි එක)
+        if text == "/pause":
+            state['is_paused'] = True
+            sync_save()
+            execute_telegram_send("🔇 Notifications Paused.")
+        elif text == "/resume":
+            state['is_paused'] = False
+            sync_save()
+            execute_telegram_send("🔊 Notifications Resumed.")
+            
+        # 2. ස්කෑන් කිරීම පාලනය (අලුත් එක)
+        elif text == "/scan_stop":
+            state['is_scanning'] = False
+            sync_save()
+            execute_telegram_send("🛑 <b>SCAN STOPPED:</b> No new signals or recovery trades will be taken.")
+        elif text == "/scan_start":
+            state['is_scanning'] = True
+            sync_save()
+            execute_telegram_send("▶️ <b>SCAN STARTED:</b> Searching for new signals and recovery trades.")
 
-    function renderResults(list) {
-        const resDiv = document.getElementById('results');
-        resDiv.innerHTML = list.length === 0 ? "<p class='loading'>කිසිවක් හමු නොවීය.</p>" : "";
-        list.forEach(res => {
-            const mid = `map-${res.id}`;
-            resDiv.innerHTML += `
-                <div class="result-card">
-                    <h4 id="t-${res.id}">${res.name}</h4>
-                    <span class="badge">🛣️ ${res.dist.toFixed(2)} KM</span>
-                    <div id="${mid}" class="mini-map"></div>
-                    <div class="action-btns">
-                        <a href="tel:${res.phone}" class="btn call-btn" ${!res.phone ? 'style="display:none"' : ''}>අමතන්න</a>
-                        <a href="https://www.google.com/maps/dir/?api=1&destination=${res.lat},${res.lon}" target="_blank" class="btn dir-btn">මාර්ගය</a>
-                    </div>
-                </div>`;
-            setTimeout(() => {
-                var map = L.map(mid, { zoomControl: false, dragging: true }).setView([res.lat, res.lon], 15);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-                L.marker([res.lat, res.lon]).addTo(map);
-            }, 500);
-            improveAI(res.id, res.name);
-        });
-    }
+    return "OK", 200
 
-    async function improveAI(id, name) {
-        try {
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
-                method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ contents: [{ parts: [{ text: `Translate "${name}" to clean short Sinhala. JSON only: {"n":"..."}` }] }] })
-            });
-            const d = await res.json();
-            const clean = JSON.parse(d.candidates[0].content.parts[0].text.replace(/```json|```/g, ""));
-            if (clean.n) document.getElementById(`t-${id}`).innerText = clean.n;
-        } catch (e) {}
-    }
-</script>
-</body>
-</html>
+@app.route('/')
+def home(): 
+    status = "RUNNING" if state.get('is_scanning', True) else "STOPPED"
+    return f"Bot Status: {status}", 200
+
+if __name__ == "__main__":
+    threading.Thread(target=scan_markets, daemon=True).start()
+    app.run(host='0.0.0.0', port=PORT)
